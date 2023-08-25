@@ -6,6 +6,7 @@ public class AnimationManager : MonoBehaviour
 {
     [SerializeField] private Animator animator;
     [SerializeField] private PlayerMovement playerMovement;
+    private GameInput gameInput;
     [SerializeField] private Jump jump;
 
     // animation IDs
@@ -22,6 +23,8 @@ public class AnimationManager : MonoBehaviour
     }
     private void Start()
     {
+        gameInput = GameInput.Instance;
+
         playerMovement.OnSpeedChangeAction += PlayerMovement_OnSpeedChangeAction;
         playerMovement.OnMotionBlendChangeAction += PlayerMovement_OnMotionBlendChangeAction;
         playerMovement.OnGrondedChangeAction += PlayerMovement_OnGrondedChangeAction;

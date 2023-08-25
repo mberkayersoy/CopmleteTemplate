@@ -25,9 +25,9 @@
                 },
                 {
                     "name": "Sprint",
-                    "type": "Button",
+                    "type": "PassThrough",
                     "id": "cee9afd8-22f2-4636-8499-4ea8dbd32163",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -121,59 +121,15 @@
                     "isPartOfComposite": false
                 },
                 {
-                    "name": "MouseDelta",
-                    "id": "8ad3d9fc-fd64-4a4f-be8a-eb68228317af",
-                    "path": "2DVector(mode=2)",
+                    "name": "",
+                    "id": "6e3eee01-381d-46f8-bae4-6569e00d0e56",
+                    "path": "<Pointer>/delta",
                     "interactions": "",
-                    "processors": "StickDeadzone",
+                    "processors": "InvertVector2(invertX=false),ScaleVector2(x=0.05,y=0.05)",
                     "groups": "",
                     "action": "MouseDeltaPosition",
-                    "isComposite": true,
+                    "isComposite": false,
                     "isPartOfComposite": false
-                },
-                {
-                    "name": "up",
-                    "id": "ab1d517d-58ff-483e-a8fb-123c864e2e5c",
-                    "path": "<Mouse>/delta/up",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "MouseDeltaPosition",
-                    "isComposite": false,
-                    "isPartOfComposite": true
-                },
-                {
-                    "name": "down",
-                    "id": "0a2d90b3-0055-4610-afa0-0b1d25b34be9",
-                    "path": "<Mouse>/delta/down",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "MouseDeltaPosition",
-                    "isComposite": false,
-                    "isPartOfComposite": true
-                },
-                {
-                    "name": "left",
-                    "id": "be10b6c9-b355-4b3b-8446-ec9568bcb6b9",
-                    "path": "<Mouse>/delta/left",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "MouseDeltaPosition",
-                    "isComposite": false,
-                    "isPartOfComposite": true
-                },
-                {
-                    "name": "right",
-                    "id": "b79d9b03-6fe6-45a7-8455-379eb87849ad",
-                    "path": "<Mouse>/delta/right",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "MouseDeltaPosition",
-                    "isComposite": false,
-                    "isPartOfComposite": true
                 }
             ]
         }

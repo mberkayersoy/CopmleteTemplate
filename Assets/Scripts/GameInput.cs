@@ -12,8 +12,13 @@ public class GameInput : MonoBehaviour
 
     public event EventHandler OnPlayerMovementAction;
     public event EventHandler OnJumpAction;
-    public event EventHandler OnSprintAction;
     public event EventHandler OnMousePositionDeltaAction;
+    public event EventHandler<OnSprintActionEventArgs> OnSprintAction;
+
+    public class OnSprintActionEventArgs : EventArgs
+    {
+        public bool isSprint;
+    }
 
     private void Awake()
     {
@@ -37,7 +42,10 @@ public class GameInput : MonoBehaviour
 
     private void Sprint_performed(InputAction.CallbackContext obj)
     {
-        OnSprintAction?.Invoke(this, EventArgs.Empty);
+        OnSprintAction?.Invoke(this, new OnSprintActionEventArgs 
+        {
+            isSprint = playerInputActions.Player.Sprint.IsPressed()
+        });
     }
 
     private void Movement_performed(InputAction.CallbackContext obj)

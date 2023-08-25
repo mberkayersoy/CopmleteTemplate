@@ -10,6 +10,7 @@ public class PlayerMovement : MonoBehaviour
     public event EventHandler<OnMotionBlendChangeActionEventArgs> OnMotionBlendChangeAction;
     public event EventHandler<OnGrondedChangeActionEventArgs> OnGrondedChangeAction;
 
+
     // EVENT ARGS
     public class OnSpeedChangeActionEventArgs : EventArgs { public float speed; }
     public class OnMotionBlendChangeActionEventArgs : EventArgs{ public float animationBlend; }
@@ -19,6 +20,7 @@ public class PlayerMovement : MonoBehaviour
     private GameInput gameInput;
     private Jump jump;
 
+    [SerializeField] private Vector2 Look;
     [SerializeField] private bool isSprinting;
     [SerializeField] private Vector3 groundOffset;
     [SerializeField] private LayerMask groundLayer;
@@ -31,6 +33,8 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float speedChangeRate = 10f;  //Acceleration and deceleration
     [SerializeField] private float RotationSmoothTime = 0.12f;
     [SerializeField] private float Sensitivity = 1f;
+    [SerializeField] private float characterContorllerDefaultHeight = 1.9f;
+    [SerializeField] private float characterContorllerRollHeight = 1.2f;
     private float _animationBlend;
     private float _targetRotation = 0.0f;
     private float _rotationVelocity;
@@ -59,9 +63,6 @@ public class PlayerMovement : MonoBehaviour
     private float _cinemachineTargetPitch;
 
 
-    public AudioClip LandingAudioClip;
-    public AudioClip[] FootstepAudioClips;
-    [Range(0, 1)] public float FootstepAudioVolume = 0.5f;
     private void Awake()
     {
         characterController = GetComponent<CharacterController>();
@@ -72,21 +73,24 @@ public class PlayerMovement : MonoBehaviour
         gameInput = GameInput.Instance;
 
         Cursor.lockState = CursorLockMode.Locked;
-        gameInput.OnSprintAction += GameInput_OnSprintAction;
+        gameInput.OnSprintAction += GameInput_OnSprintAction; ;
 
        _cinemachineTargetYaw = CinemachineCameraTarget.transform.rotation.eulerAngles.y;
     }
 
-    private void GameInput_OnSprintAction(object sender, System.EventArgs e)
+    private void GameInput_OnSprintAction(object sender, GameInput.OnSprintActionEventArgs e)
     {
-        isSprinting = !isSprinting;
+        isSprinting = e.isSprint;
     }
 
     private void Update()
     {
         Move();
         GroundCheck();
+        Look.x = gameInput.GetMousePositionMovementDelta().x;
+        Look.y = gameInput.GetMousePositionMovementDelta().y;
     }
+
     private void Move()
     {
         float targetSpeed = isSprinting ? sprintSpeed : moveSpeed;
@@ -124,13 +128,13 @@ public class PlayerMovement : MonoBehaviour
         if (_animationBlend < 0.01f) _animationBlend = 0f;
 
         // normalise input direction
-        Vector3 inputDirection = new Vector2(movementVector.x, movementVector.y);
+        Vector3 inputDirection = new Vector3(movementVector.x, 0f ,movementVector.y).normalized;
 
         //note: Vector2's != operator uses approximation so is not floating point error prone, and is cheaper than magnitude
         // if there is a move input rotate player when the player is moving
         if (gameInput.GetMovementVectorNormalized() != Vector2.zero)
         {
-            _targetRotation = Mathf.Atan2(inputDirection.x, inputDirection.y) * Mathf.Rad2Deg +
+            _targetRotation = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg +
                               Camera.main.transform.eulerAngles.y;
             float rotation = Mathf.SmoothDampAngle(transform.eulerAngles.y, _targetRotation, ref _rotationVelocity,
                 RotationSmoothTime);
@@ -149,7 +153,7 @@ public class PlayerMovement : MonoBehaviour
         {
             // move the player
             characterController.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
-                             new Vector3(0.0f, jump.VerticalVelocity, 0.0f) * Time.deltaTime);
+                                new Vector3(0.0f, jump.VerticalVelocity, 0.0f) * Time.deltaTime);
         }
         else
         {
@@ -168,8 +172,6 @@ public class PlayerMovement : MonoBehaviour
         {
             animationBlend = inputMagnitude
         });
-        //animator.SetFloat("Speed", _animationBlend);
-        //animator.SetFloat("MotionSpeed", inputMagnitude);
     }
 
     private void LateUpdate()
@@ -179,12 +181,12 @@ public class PlayerMovement : MonoBehaviour
 
     private void CameraRotation()
     {
-        Vector2 mouseDeltaPosiiton = gameInput.GetMousePositionMovementDelta().normalized;
+        Vector2 mousePositionDelta = gameInput.GetMousePositionMovementDelta();
         // if there is an input and camera position is not fixed
-        if (mouseDeltaPosiiton.sqrMagnitude >= _threshold && !LockCameraPosition)
+        if (mousePositionDelta.sqrMagnitude >= _threshold && !LockCameraPosition)
         {
-            _cinemachineTargetYaw += mouseDeltaPosiiton.x;
-            _cinemachineTargetPitch += mouseDeltaPosiiton.y;
+            _cinemachineTargetYaw += mousePositionDelta.x * 1;
+            _cinemachineTargetPitch += mousePositionDelta.y * 1;
         }
 
         // clamp our rotations so our values are limited 360 degrees
@@ -207,27 +209,6 @@ public class PlayerMovement : MonoBehaviour
         });
         return isGrounded;
     }
-
-    public void OnFootstep(AnimationEvent animationEvent)
-    {
-        if (animationEvent.animatorClipInfo.weight > 0.5f)
-        {
-            if (FootstepAudioClips.Length > 0)
-            {
-                var index = UnityEngine.Random.Range(0, FootstepAudioClips.Length);
-                AudioSource.PlayClipAtPoint(FootstepAudioClips[index], transform.TransformPoint(characterController.center), FootstepAudioVolume);
-            }
-        }
-    }
-
-    public void OnLand(AnimationEvent animationEvent)
-    {
-        if (animationEvent.animatorClipInfo.weight > 0.5f)
-        {
-            AudioSource.PlayClipAtPoint(LandingAudioClip, transform.TransformPoint(characterController.center), FootstepAudioVolume);
-        }
-    }
-
 
     private static float ClampAngle(float lfAngle, float lfMin, float lfMax)
     {
