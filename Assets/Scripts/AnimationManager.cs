@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,12 +10,15 @@ public class AnimationManager : MonoBehaviour
     private GameInput gameInput;
     [SerializeField] private Jump jump;
 
+    public event EventHandler OnRollComplete;
+
     // animation IDs
     private int animIDSpeed;
     private int animIDGrounded;
     private int animIDJump;
     private int animIDFreeFall;
     private int animIDMotionSpeed;
+    private int animIDRoll;
 
 
     private void Awake()
@@ -25,6 +29,7 @@ public class AnimationManager : MonoBehaviour
     {
         gameInput = GameInput.Instance;
 
+        playerMovement.OnRollAction += PlayerMovement_OnRollAction; ;
         playerMovement.OnSpeedChangeAction += PlayerMovement_OnSpeedChangeAction;
         playerMovement.OnMotionBlendChangeAction += PlayerMovement_OnMotionBlendChangeAction;
         playerMovement.OnGrondedChangeAction += PlayerMovement_OnGrondedChangeAction;
@@ -32,6 +37,26 @@ public class AnimationManager : MonoBehaviour
         jump.OnJumpAction += Jump_OnJumpAction;
 
     }
+
+    private void PlayerMovement_OnRollAction(object sender, PlayerMovement.OnGRollActionEventArgs e)
+    {
+        Debug.Log("e.isrolling: " + e.isRolling);
+        animator.SetBool(animIDRoll, e.isRolling);
+    }
+
+    private void ActivateRootMotion(AnimationEvent animationEvent)
+    {
+        animator.applyRootMotion = true;
+    }
+    private void DeactivateRootMotion(AnimationEvent animationEvent)
+    {
+        animator.applyRootMotion = false;
+    }
+
+    //private void PlayerMovement_OnRollAction(object sender, System.EventArgs e)
+    //{
+    //    animator.SetBool(animIDRoll, true);
+    //}
 
     private void Jump_OnJumpAction(object sender, Jump.OnJumpActionEventArgs e)
     {
@@ -65,6 +90,7 @@ public class AnimationManager : MonoBehaviour
         animIDJump = Animator.StringToHash("Jump");
         animIDFreeFall = Animator.StringToHash("FreeFall");
         animIDMotionSpeed = Animator.StringToHash("MotionSpeed");
+        animIDRoll = Animator.StringToHash("Roll");
     }
 
 }

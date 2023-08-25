@@ -9,12 +9,14 @@ public class PlayerMovement : MonoBehaviour
     public event EventHandler<OnSpeedChangeActionEventArgs> OnSpeedChangeAction;
     public event EventHandler<OnMotionBlendChangeActionEventArgs> OnMotionBlendChangeAction;
     public event EventHandler<OnGrondedChangeActionEventArgs> OnGrondedChangeAction;
+    public event EventHandler<OnGRollActionEventArgs> OnRollAction;
 
 
     // EVENT ARGS
     public class OnSpeedChangeActionEventArgs : EventArgs { public float speed; }
     public class OnMotionBlendChangeActionEventArgs : EventArgs{ public float animationBlend; }
     public class OnGrondedChangeActionEventArgs : EventArgs { public bool isGrounded; }
+    public class OnGRollActionEventArgs : EventArgs { public bool isRolling; }
 
     private CharacterController characterController;
     private GameInput gameInput;
@@ -22,6 +24,7 @@ public class PlayerMovement : MonoBehaviour
 
     [SerializeField] private Vector2 Look;
     [SerializeField] private bool isSprinting;
+    [SerializeField] private bool isRolling;
     [SerializeField] private Vector3 groundOffset;
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private float groundRadius = 0.3f;
@@ -32,35 +35,12 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float sprintSpeed;
     [SerializeField] private float speedChangeRate = 10f;  //Acceleration and deceleration
     [SerializeField] private float RotationSmoothTime = 0.12f;
-    [SerializeField] private float Sensitivity = 1f;
     [SerializeField] private float characterContorllerDefaultHeight = 1.9f;
     [SerializeField] private float characterContorllerRollHeight = 1.2f;
     private float _animationBlend;
     private float _targetRotation = 0.0f;
     private float _rotationVelocity;
     [SerializeField] private bool _rotateOnMove = true;
-
-
-    private const float _threshold = 0.01f;
-    [Header("Cinemachine")]
-    [Tooltip("The follow target set in the Cinemachine Virtual Camera that the camera will follow")]
-    public GameObject CinemachineCameraTarget;
-
-    [Tooltip("How far in degrees can you move the camera up")]
-    public float TopClamp = 70.0f;
-
-    [Tooltip("How far in degrees can you move the camera down")]
-    public float BottomClamp = -30.0f;
-
-    [Tooltip("Additional degress to override the camera. Useful for fine tuning camera position when locked")]
-    public float CameraAngleOverride = 0.0f;
-
-    [Tooltip("For locking the camera position on all axis")]
-    public bool LockCameraPosition = false;
-
-    // cinemachine
-    private float _cinemachineTargetYaw;
-    private float _cinemachineTargetPitch;
 
 
     private void Awake()
@@ -74,8 +54,20 @@ public class PlayerMovement : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.Locked;
         gameInput.OnSprintAction += GameInput_OnSprintAction; ;
+        gameInput.OnRollAction += GameInput_OnRollAction;
+    }
 
-       _cinemachineTargetYaw = CinemachineCameraTarget.transform.rotation.eulerAngles.y;
+    private void GameInput_OnRollAction(object sender, EventArgs e)
+    {
+        if (!isRolling)
+        {
+            isRolling = true;
+            OnRollAction?.Invoke(this, new OnGRollActionEventArgs 
+            { 
+                isRolling = isRolling
+            });
+
+        }
     }
 
     private void GameInput_OnSprintAction(object sender, GameInput.OnSprintActionEventArgs e)
@@ -174,31 +166,6 @@ public class PlayerMovement : MonoBehaviour
         });
     }
 
-    private void LateUpdate()
-    {
-        CameraRotation();
-    }
-
-    private void CameraRotation()
-    {
-        Vector2 mousePositionDelta = gameInput.GetMousePositionMovementDelta();
-        // if there is an input and camera position is not fixed
-        if (mousePositionDelta.sqrMagnitude >= _threshold && !LockCameraPosition)
-        {
-            _cinemachineTargetYaw += mousePositionDelta.x * 1;
-            _cinemachineTargetPitch += mousePositionDelta.y * 1;
-        }
-
-        // clamp our rotations so our values are limited 360 degrees
-        _cinemachineTargetYaw = ClampAngle(_cinemachineTargetYaw, float.MinValue, float.MaxValue);
-        _cinemachineTargetPitch = ClampAngle(_cinemachineTargetPitch, BottomClamp, TopClamp);
-
-
-        // Cinemachine will follow this target
-        CinemachineCameraTarget.transform.rotation = Quaternion.Euler(_cinemachineTargetPitch + CameraAngleOverride,
-            _cinemachineTargetYaw, 0.0f);
-    }
-
     public bool GroundCheck()
     {
         bool isGrounded = Physics.CheckSphere(transform.position + groundOffset, groundRadius, groundLayer);
@@ -210,11 +177,15 @@ public class PlayerMovement : MonoBehaviour
         return isGrounded;
     }
 
-    private static float ClampAngle(float lfAngle, float lfMin, float lfMax)
+    private void OnRollComplete(AnimationEvent animationEvent)
     {
-        if (lfAngle < -360f) lfAngle += 360f;
-        if (lfAngle > 360f) lfAngle -= 360f;
-        return Mathf.Clamp(lfAngle, lfMin, lfMax);
+        isRolling = false;
+
+        OnRollAction?.Invoke(this, new OnGRollActionEventArgs
+        {
+            isRolling = isRolling
+        });
+
     }
 
     private void OnDrawGizmos()

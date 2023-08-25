@@ -46,6 +46,7 @@ GameObject:
   - component: {fileID: 2693983917095683609}
   - component: {fileID: 3912589657952474494}
   - component: {fileID: 6408382683142441298}
+  - component: {fileID: 8488759468176761157}
   m_Layer: 0
   m_Name: PlayerParent
   m_TagString: Player
@@ -84,6 +85,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Look: {x: 0, y: 0}
   isSprinting: 0
+  isRolling: 0
   groundOffset: {x: 0, y: 0, z: 0}
   groundLayer:
     serializedVersion: 2
@@ -96,15 +98,9 @@ MonoBehaviour:
   sprintSpeed: 15
   speedChangeRate: 5
   RotationSmoothTime: 0.4
-  Sensitivity: 1
   characterContorllerDefaultHeight: 1.9
   characterContorllerRollHeight: 1.2
   _rotateOnMove: 1
-  CinemachineCameraTarget: {fileID: 2492081737701689224}
-  TopClamp: 70
-  BottomClamp: -70
-  CameraAngleOverride: 0
-  LockCameraPosition: 0
 --- !u!143 &6555066057510856549
 CharacterController:
   m_ObjectHideFlags: 0
@@ -208,6 +204,26 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 274649b0e221539409070ebf6c18918b, type: 3}
   - {fileID: 8300000, guid: a3194b8bbc96ef84fab1f98f4b7dae3e, type: 3}
   FootstepAudioVolume: 0.5
+--- !u!114 &8488759468176761157
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7514196325243835353}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b6a7b6f4dc3a78043b34950ee9837e42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  aimVirtucalCamera: {fileID: 0}
+  CinemachineCameraTarget: {fileID: 2492081737701689224}
+  TopClamp: 70
+  BottomClamp: -30
+  CameraAngleOverride: 0
+  LockCameraPosition: 0
+  normalSensitivity: 1
+  aimSensitivity: 0.5
 --- !u!1001 &1185987901820283401
 PrefabInstance:
   m_ObjectHideFlags: 0
