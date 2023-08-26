@@ -19,6 +19,7 @@ public class AnimationManager : MonoBehaviour
     private int animIDFreeFall;
     private int animIDMotionSpeed;
     private int animIDRoll;
+    private int animIDSlide;
 
 
     private void Awake()
@@ -29,6 +30,7 @@ public class AnimationManager : MonoBehaviour
     {
         gameInput = GameInput.Instance;
 
+        playerMovement.OnSlideAction += PlayerMovement_OnSlideAction;
         playerMovement.OnRollAction += PlayerMovement_OnRollAction; ;
         playerMovement.OnSpeedChangeAction += PlayerMovement_OnSpeedChangeAction;
         playerMovement.OnMotionBlendChangeAction += PlayerMovement_OnMotionBlendChangeAction;
@@ -38,9 +40,13 @@ public class AnimationManager : MonoBehaviour
 
     }
 
-    private void PlayerMovement_OnRollAction(object sender, PlayerMovement.OnGRollActionEventArgs e)
+    private void PlayerMovement_OnSlideAction(object sender, PlayerMovement.OnSlideActionEventArgs e)
     {
-        Debug.Log("e.isrolling: " + e.isRolling);
+        animator.SetBool(animIDSlide, e.isSliding);
+    }
+
+    private void PlayerMovement_OnRollAction(object sender, PlayerMovement.OnRollActionEventArgs e)
+    {
         animator.SetBool(animIDRoll, e.isRolling);
     }
 
@@ -51,12 +57,8 @@ public class AnimationManager : MonoBehaviour
     private void DeactivateRootMotion(AnimationEvent animationEvent)
     {
         animator.applyRootMotion = false;
+        Debug.Log("DeActivateRootMotion(): " + animator.hasRootMotion);
     }
-
-    //private void PlayerMovement_OnRollAction(object sender, System.EventArgs e)
-    //{
-    //    animator.SetBool(animIDRoll, true);
-    //}
 
     private void Jump_OnJumpAction(object sender, Jump.OnJumpActionEventArgs e)
     {
@@ -91,6 +93,7 @@ public class AnimationManager : MonoBehaviour
         animIDFreeFall = Animator.StringToHash("FreeFall");
         animIDMotionSpeed = Animator.StringToHash("MotionSpeed");
         animIDRoll = Animator.StringToHash("Roll");
+        animIDSlide = Animator.StringToHash("Slide");
     }
 
 }

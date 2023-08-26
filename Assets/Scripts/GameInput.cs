@@ -15,6 +15,7 @@ public class GameInput : MonoBehaviour
     public event EventHandler OnMousePositionDeltaAction;
     public event EventHandler OnRollAction;
     public event EventHandler OnAimAction;
+    public event EventHandler OnSlideAction;
     public event EventHandler<OnSprintActionEventArgs> OnSprintAction;
     public class OnSprintActionEventArgs : EventArgs{ public bool isSprint; }
 
@@ -32,6 +33,12 @@ public class GameInput : MonoBehaviour
         playerInputActions.Player.MouseDeltaPosition.performed += MouseDeltaPosition_performed;
         playerInputActions.Player.Roll.performed += Roll_performed;
         playerInputActions.Player.Aim.performed += Aim_performed;
+        playerInputActions.Player.Slide.performed += Slide_performed;
+    }
+
+    private void Slide_performed(InputAction.CallbackContext obj)
+    {
+        OnSlideAction?.Invoke(this, EventArgs.Empty);
     }
 
     private void Aim_performed(InputAction.CallbackContext obj)

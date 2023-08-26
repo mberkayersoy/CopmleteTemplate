@@ -9,14 +9,16 @@ public class PlayerMovement : MonoBehaviour
     public event EventHandler<OnSpeedChangeActionEventArgs> OnSpeedChangeAction;
     public event EventHandler<OnMotionBlendChangeActionEventArgs> OnMotionBlendChangeAction;
     public event EventHandler<OnGrondedChangeActionEventArgs> OnGrondedChangeAction;
-    public event EventHandler<OnGRollActionEventArgs> OnRollAction;
+    public event EventHandler<OnRollActionEventArgs> OnRollAction;
+    public event EventHandler<OnSlideActionEventArgs> OnSlideAction;
 
 
     // EVENT ARGS
     public class OnSpeedChangeActionEventArgs : EventArgs { public float speed; }
     public class OnMotionBlendChangeActionEventArgs : EventArgs{ public float animationBlend; }
     public class OnGrondedChangeActionEventArgs : EventArgs { public bool isGrounded; }
-    public class OnGRollActionEventArgs : EventArgs { public bool isRolling; }
+    public class OnRollActionEventArgs : EventArgs { public bool isRolling; }
+    public class OnSlideActionEventArgs : EventArgs { public bool isSliding; }
 
     private CharacterController characterController;
     private GameInput gameInput;
@@ -25,6 +27,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private Vector2 Look;
     [SerializeField] private bool isSprinting;
     [SerializeField] private bool isRolling;
+    [SerializeField] private bool isSliding;
     [SerializeField] private Vector3 groundOffset;
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private float groundRadius = 0.3f;
@@ -55,14 +58,27 @@ public class PlayerMovement : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         gameInput.OnSprintAction += GameInput_OnSprintAction; ;
         gameInput.OnRollAction += GameInput_OnRollAction;
+        gameInput.OnSlideAction += GameInput_OnSlideAction;
+    }
+
+    private void GameInput_OnSlideAction(object sender, EventArgs e)
+    {
+        if (!isSliding && !isRolling && _speed >= 5f)
+        {
+            isSliding = true;
+            OnSlideAction?.Invoke(this, new OnSlideActionEventArgs
+            {
+                isSliding = isSliding
+            });
+        }
     }
 
     private void GameInput_OnRollAction(object sender, EventArgs e)
     {
-        if (!isRolling)
+        if (!isRolling && !isSliding)
         {
             isRolling = true;
-            OnRollAction?.Invoke(this, new OnGRollActionEventArgs 
+            OnRollAction?.Invoke(this, new OnRollActionEventArgs 
             { 
                 isRolling = isRolling
             });
@@ -181,11 +197,22 @@ public class PlayerMovement : MonoBehaviour
     {
         isRolling = false;
 
-        OnRollAction?.Invoke(this, new OnGRollActionEventArgs
+        OnRollAction?.Invoke(this, new OnRollActionEventArgs
         {
             isRolling = isRolling
         });
+    }
 
+    private void OnSlideComplete(AnimationEvent animationEvent)
+    {
+        isSliding = false;
+        Debug.Log("OnSlideComplete() ,> isSliding: " + isSliding);
+
+
+        OnSlideAction?.Invoke(this, new OnSlideActionEventArgs
+        {
+            isSliding = isSliding
+        });
     }
 
     private void OnDrawGizmos()
