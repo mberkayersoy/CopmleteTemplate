@@ -75,6 +75,11 @@ public class PlayerMovement : MonoBehaviour
         gameInput.OnSlideAction += GameInput_OnSlideAction;
     }
 
+    private void Update()
+    {
+        Move();
+    }
+
     private void GameInput_OnSlideAction(object sender, EventArgs e)
     {
         if (!isRolling && !isSliding && !jump.IsJumping && _speed >= 5f)
@@ -87,19 +92,9 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    public bool GetIsRolling()
-    {
-        return isRolling;
-    }
-
-    public bool GetIsSliding()
-    {
-        return isSliding;
-    }
-
     private void GameInput_OnRollAction(object sender, EventArgs e)
     {
-        if (!isRolling && !isSliding && !jump.IsJumping)
+        if (!isRolling && !isSliding && GroundCheck())
         {
             isRolling = true;
             OnRollAction?.Invoke(this, new OnRollActionEventArgs 
@@ -113,11 +108,6 @@ public class PlayerMovement : MonoBehaviour
     private void GameInput_OnSprintAction(object sender, GameInput.OnSprintActionEventArgs e)
     {
         isSprinting = e.isSprint;
-    }
-
-    private void Update()
-    {
-        Move();
     }
 
     private void Move()
@@ -209,11 +199,6 @@ public class PlayerMovement : MonoBehaviour
         });
     }
 
-    public void SetRotateOnMove(bool newRotateOnMove)
-    {
-        _rotateOnMove = newRotateOnMove;
-    }
-
     public bool GroundCheck()
     {
         bool isGrounded = Physics.CheckSphere(transform.position + groundOffset, groundRadius, groundLayer);
@@ -224,6 +209,21 @@ public class PlayerMovement : MonoBehaviour
         });
         return isGrounded;
     }
+
+    public bool GetIsRolling()
+    {
+        return isRolling;
+    }
+
+    public bool GetIsSliding()
+    {
+        return isSliding;
+    }
+    public void SetRotateOnMove(bool newRotateOnMove)
+    {
+        _rotateOnMove = newRotateOnMove;
+    }
+
 
     private void OnRollComplete(AnimationEvent animationEvent)
     {
@@ -259,6 +259,7 @@ public class PlayerMovement : MonoBehaviour
         characterController.height = characterContorllerAnimationHeight;
         characterController.center = new Vector3(0, characterContorllerAnimationCenterY, 0);
     }
+
 
     //private void OnDrawGizmos()
     //{

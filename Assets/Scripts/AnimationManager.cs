@@ -19,7 +19,7 @@ public class AnimationManager : MonoBehaviour
     [SerializeField] private Animator animator;
     [SerializeField] private AnimatorOverrideController[] overrideControllers;
 
-    public event EventHandler OnRollComplete;
+//    public event EventHandler OnRollComplete;
 
     // Animation IDs
     private int animIDSpeed;
