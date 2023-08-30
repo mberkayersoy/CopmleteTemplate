@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
-public class ToolTip : MonoBehaviour
+public class ToolTipUI : MonoBehaviour
 {
-    public static ToolTip Instance;
+    public static ToolTipUI Instance;
     private TextMeshProUGUI tooltipText;
     private RectTransform backgroundRectTransform;
 
@@ -37,13 +37,11 @@ public class ToolTip : MonoBehaviour
 
         if (anchoredPosition.x + backgroundRectTransform.rect.width > canvasRectTransform.rect.width)
         {
-            Debug.Log("anchoredPosition.x: " + anchoredPosition.x);
             anchoredPosition.x = canvasRectTransform.rect.width - backgroundRectTransform.rect.width;
         }
 
         if (anchoredPosition.y + backgroundRectTransform.rect.height > canvasRectTransform.rect.height)
         {
-            Debug.Log("height");
             anchoredPosition.y = canvasRectTransform.rect.height - backgroundRectTransform.rect.height;
         }
 
