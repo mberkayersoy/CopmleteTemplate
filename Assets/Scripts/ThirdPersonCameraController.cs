@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,6 +7,13 @@ using Cinemachine;
 public class ThirdPersonCameraController : MonoBehaviour
 {
     private GameInput gameInput;
+    private PlayerMovement playerMovement;
+
+
+    public event EventHandler<OnAimStateChangeEventArgs> OnAimStateChange;
+
+    public class OnAimStateChangeEventArgs : EventArgs { public bool isAiming; }
+
     private const float _threshold = 0.01f;
     private const float sensitivityMultiplier = 100f;
     private bool isAiming;
@@ -27,9 +35,14 @@ public class ThirdPersonCameraController : MonoBehaviour
     [Tooltip("For locking the camera position on all axis")]
     [SerializeField] private bool LockCameraPosition = false;
 
+    [Header("SENSITIVITY")]
     [SerializeField] private float normalSensitivity = 1f;
     [SerializeField] private float aimSensitivity = 0.5f;
+    [SerializeField] private float aimRotationSpeed = 15f;
     private float currentSensitivity;
+
+    [SerializeField] private LayerMask aimColliderLayerMask = new LayerMask();
+    [SerializeField] private Transform debugTransform;
 
 
     // cinemachine
@@ -39,6 +52,7 @@ public class ThirdPersonCameraController : MonoBehaviour
     private void Start()
     {
         gameInput = GameInput.Instance;
+        playerMovement = GetComponent<PlayerMovement>();
 
         gameInput.OnAimAction += GameInput_OnAimAction;
 
@@ -46,23 +60,57 @@ public class ThirdPersonCameraController : MonoBehaviour
         _cinemachineTargetYaw = CinemachineCameraTarget.transform.rotation.eulerAngles.y;
     }
 
-    private void GameInput_OnAimAction(object sender, System.EventArgs e)
+
+    private void Update()
     {
-        isAiming = !isAiming;
+        Vector3 mouseWorldPosition = Vector3.zero;
+
+        Vector2 screenCenterPoint = new Vector2(Screen.width / 2, Screen.height / 2);
+        Ray ray = Camera.main.ScreenPointToRay(screenCenterPoint);
+
+        if (Physics.Raycast(ray, out RaycastHit raycastHit, 999f, aimColliderLayerMask))
+        {
+            debugTransform.position = raycastHit.point;
+            mouseWorldPosition = raycastHit.point;
+
+        }
+
         if (isAiming)
         {
-            currentSensitivity = aimSensitivity;
+            Vector3 worldAimTarget = mouseWorldPosition;
+            worldAimTarget.y = transform.position.y;
+            Vector3 aimDirection = (worldAimTarget - transform.position).normalized;
+
+            transform.forward = Vector3.Lerp(transform.forward, aimDirection, Time.deltaTime * aimRotationSpeed);
         }
-        else
-        {
-            currentSensitivity = normalSensitivity;
-        }
-        aimVirtucalCamera.gameObject.SetActive(isAiming);
     }
 
     private void LateUpdate()
     {
         CameraRotation();
+    }
+
+    private void GameInput_OnAimAction(object sender, System.EventArgs e)
+    {
+
+        isAiming = !isAiming;
+        OnAimStateChange?.Invoke(this, new OnAimStateChangeEventArgs
+        {
+            isAiming = isAiming
+        });
+        aimVirtucalCamera.gameObject.SetActive(isAiming);
+
+        if (isAiming)
+        {
+            currentSensitivity = aimSensitivity;
+            playerMovement.SetRotateOnMove(isAiming);
+        }
+        else
+        {
+            currentSensitivity = normalSensitivity;
+            playerMovement.SetRotateOnMove(!isAiming);
+        }
+
     }
 
     private void CameraRotation()
@@ -90,5 +138,10 @@ public class ThirdPersonCameraController : MonoBehaviour
         if (lfAngle < -360f) lfAngle += 360f;
         if (lfAngle > 360f) lfAngle -= 360f;
         return Mathf.Clamp(lfAngle, lfMin, lfMax);
+    }
+
+    public bool GetIsAiming()
+    {
+        return isAiming;
     }
 }

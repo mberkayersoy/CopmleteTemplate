@@ -77032,15 +77032,29 @@ AnimationClip:
     floatParameter: 0
     intParameter: 0
     messageOptions: 0
-  - time: 1.4
-    functionName: OnRollComplete
+  - time: 0.26666668
+    functionName: DecreaseCharacterControllerColliderHeight
     data: 
     objectReferenceParameter: {fileID: 0}
     floatParameter: 0
     intParameter: 0
     messageOptions: 0
-  - time: 1.4
+  - time: 1.1
+    functionName: SetDefaultHeightCharacterControllerCollider
+    data: 
+    objectReferenceParameter: {fileID: 0}
+    floatParameter: 0
+    intParameter: 0
+    messageOptions: 0
+  - time: 1.3
     functionName: DeactivateRootMotion
+    data: 
+    objectReferenceParameter: {fileID: 0}
+    floatParameter: 0
+    intParameter: 0
+    messageOptions: 0
+  - time: 1.3666667
+    functionName: OnRollComplete
     data: 
     objectReferenceParameter: {fileID: 0}
     floatParameter: 0

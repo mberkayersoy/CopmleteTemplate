@@ -83,24 +83,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c1ede8497d0946f4fb07e45811d58bcd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Look: {x: 0, y: 0}
-  isSprinting: 0
-  isRolling: 0
   groundOffset: {x: 0, y: 0, z: 0}
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
   groundRadius: 0.3
-  moveSpeed: 10
-  speedMultOnJump: 0.9
-  _speed: 0
-  moveSpeedOnJump: 3
-  sprintSpeed: 15
-  speedChangeRate: 5
-  RotationSmoothTime: 0.4
-  characterContorllerDefaultHeight: 1.9
-  characterContorllerRollHeight: 1.2
+  isSprinting: 0
+  isRolling: 0
+  isSliding: 0
   _rotateOnMove: 1
+  moveSpeed: 10
+  sprintSpeed: 15
+  aimSpeed: 5
+  speedMultOnJump: 0.9
+  speedChangeRate: 5
+  RotationSmoothTime: 0.15
+  characterContorllerDefaultHeight: 1.8
+  characterContorllerAnimationHeight: 0.9
+  characterContorllerDefaultCenterY: 1
+  characterContorllerAnimationCenterY: 0.5
 --- !u!143 &6555066057510856549
 CharacterController:
   m_ObjectHideFlags: 0
@@ -120,7 +121,7 @@ CharacterController:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Height: 1.9
+  m_Height: 1.8
   m_Radius: 0.3
   m_SlopeLimit: 45
   m_StepOffset: 0.3
@@ -155,9 +156,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f683df818a634c74abc85745aefb8393, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  animator: {fileID: 3912589657952474494}
   playerMovement: {fileID: 6239671438065288121}
   jump: {fileID: 1662420016290821960}
+  animator: {fileID: 3912589657952474494}
+  overrideControllers:
+  - {fileID: 22100000, guid: 55489cdf70f0baf48a147e90423a48bb, type: 2}
+  - {fileID: 22100000, guid: 2d6596e1763ac7a40b51638e4508e2ca, type: 2}
+  knife: 0
 --- !u!95 &3912589657952474494
 Animator:
   serializedVersion: 5
@@ -224,6 +229,11 @@ MonoBehaviour:
   LockCameraPosition: 0
   normalSensitivity: 1
   aimSensitivity: 0.5
+  aimRotationSpeed: 15
+  aimColliderLayerMask:
+    serializedVersion: 2
+    m_Bits: 65
+  debugTransform: {fileID: 0}
 --- !u!1001 &1185987901820283401
 PrefabInstance:
   m_ObjectHideFlags: 0

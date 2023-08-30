@@ -54,6 +54,7 @@ public class Jump : MonoBehaviour
     }
     private void GameInput_OnJumpAction(object sender, System.EventArgs e)
     {
+        if (playerMovement.GetIsRolling() || playerMovement.GetIsSliding()) return;
         if (playerMovement.GroundCheck())
         {
             IsJumping = true;
@@ -62,6 +63,8 @@ public class Jump : MonoBehaviour
 
     private void JumpAndGravity()
     {
+        if (playerMovement.GetIsRolling() || playerMovement.GetIsSliding()) return;
+
         if (playerMovement.GroundCheck())
         {
             // reset the fall timeout timer
@@ -123,4 +126,5 @@ public class Jump : MonoBehaviour
             VerticalVelocity += Gravity * Time.deltaTime;
         }
     }
+
 }

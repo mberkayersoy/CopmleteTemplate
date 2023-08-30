@@ -20,36 +20,50 @@ public class PlayerMovement : MonoBehaviour
     public class OnRollActionEventArgs : EventArgs { public bool isRolling; }
     public class OnSlideActionEventArgs : EventArgs { public bool isSliding; }
 
+    // REFERENCES
     private CharacterController characterController;
     private GameInput gameInput;
+    private ThirdPersonCameraController cameraController;
     private Jump jump;
 
-    [SerializeField] private Vector2 Look;
-    [SerializeField] private bool isSprinting;
-    [SerializeField] private bool isRolling;
-    [SerializeField] private bool isSliding;
+    [Header("GROUND")]
     [SerializeField] private Vector3 groundOffset;
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private float groundRadius = 0.3f;
-    [SerializeField] private float moveSpeed;
-    [SerializeField] private float speedMultOnJump = 0.9f;
-    [SerializeField] private float _speed;
-    [SerializeField] private float moveSpeedOnJump;
-    [SerializeField] private float sprintSpeed;
-    [SerializeField] private float speedChangeRate = 10f;  //Acceleration and deceleration
-    [SerializeField] private float RotationSmoothTime = 0.12f;
-    [SerializeField] private float characterContorllerDefaultHeight = 1.9f;
-    [SerializeField] private float characterContorllerRollHeight = 1.2f;
-    private float _animationBlend;
-    private float _targetRotation = 0.0f;
-    private float _rotationVelocity;
+    [Space(5)]
+    [Header("BOOLEANS")]
+    [SerializeField] private bool isSprinting;
+    [SerializeField] private bool isRolling;
+    [SerializeField] private bool isSliding;
     [SerializeField] private bool _rotateOnMove = true;
+    [Space(5)]
+    [Header("MOVEMENT MULTS")]
+    [SerializeField] private float moveSpeed;
+    [SerializeField] private float sprintSpeed;
+    [SerializeField] private float aimSpeed = 5f;
+    [SerializeField] private float speedMultOnJump = 0.9f;
+    [SerializeField] private float speedChangeRate = 10f;  //Acceleration and deceleration
+    [SerializeField] private float RotationSmoothTime = 0.15f;
+    private float _speed;
+
+
+    // Collider height values of the character controller component when animations such as roll, slide are activated.
+    [SerializeField] private float characterContorllerDefaultHeight = 1.8f;
+    [SerializeField] private float characterContorllerAnimationHeight = 0.9f;
+
+    [SerializeField] private float characterContorllerDefaultCenterY = 1f;
+    [SerializeField] private float characterContorllerAnimationCenterY = 0.5f;
+
+    private float _animationBlend; // Animation blend speed
+    private float _targetRotation = 0.0f;  // Current Target Rotation
+    private float _rotationVelocity; // SmoothDamp reference rotation velocity
 
 
     private void Awake()
     {
         characterController = GetComponent<CharacterController>();
         jump = GetComponent<Jump>();
+        cameraController = GetComponent<ThirdPersonCameraController>();
     }
     private void Start()
     {
@@ -63,7 +77,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void GameInput_OnSlideAction(object sender, EventArgs e)
     {
-        if (!isSliding && !isRolling && _speed >= 5f)
+        if (!isRolling && !isSliding && !jump.IsJumping && _speed >= 5f)
         {
             isSliding = true;
             OnSlideAction?.Invoke(this, new OnSlideActionEventArgs
@@ -73,9 +87,19 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    public bool GetIsRolling()
+    {
+        return isRolling;
+    }
+
+    public bool GetIsSliding()
+    {
+        return isSliding;
+    }
+
     private void GameInput_OnRollAction(object sender, EventArgs e)
     {
-        if (!isRolling && !isSliding)
+        if (!isRolling && !isSliding && !jump.IsJumping)
         {
             isRolling = true;
             OnRollAction?.Invoke(this, new OnRollActionEventArgs 
@@ -94,14 +118,17 @@ public class PlayerMovement : MonoBehaviour
     private void Update()
     {
         Move();
-        GroundCheck();
-        Look.x = gameInput.GetMousePositionMovementDelta().x;
-        Look.y = gameInput.GetMousePositionMovementDelta().y;
     }
 
     private void Move()
     {
         float targetSpeed = isSprinting ? sprintSpeed : moveSpeed;
+
+        if (cameraController.GetIsAiming())
+        {
+            targetSpeed = aimSpeed;
+
+        }
 
         Vector2 movementVector = gameInput.GetMovementVectorNormalized();
         // If there is no input set the targetspeed to 0.
@@ -182,6 +209,11 @@ public class PlayerMovement : MonoBehaviour
         });
     }
 
+    public void SetRotateOnMove(bool newRotateOnMove)
+    {
+        _rotateOnMove = newRotateOnMove;
+    }
+
     public bool GroundCheck()
     {
         bool isGrounded = Physics.CheckSphere(transform.position + groundOffset, groundRadius, groundLayer);
@@ -215,9 +247,22 @@ public class PlayerMovement : MonoBehaviour
         });
     }
 
-    private void OnDrawGizmos()
+
+    private void SetDefaultHeightCharacterControllerCollider(AnimationEvent animationEvent)
     {
-        Gizmos.color = Color.blue;
-        Gizmos.DrawSphere(transform.position + groundOffset, groundRadius);
+        characterController.height = characterContorllerDefaultHeight;
+        characterController.center = new Vector3(0, characterContorllerDefaultCenterY, 0);
     }
+
+    private void DecreaseCharacterControllerColliderHeight(AnimationEvent animationEvent)
+    {
+        characterController.height = characterContorllerAnimationHeight;
+        characterController.center = new Vector3(0, characterContorllerAnimationCenterY, 0);
+    }
+
+    //private void OnDrawGizmos()
+    //{
+    //    Gizmos.color = Color.blue;
+    //    Gizmos.DrawSphere(transform.position + groundOffset, groundRadius);
+    //}
 }

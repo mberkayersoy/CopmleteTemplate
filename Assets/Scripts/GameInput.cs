@@ -17,6 +17,7 @@ public class GameInput : MonoBehaviour
     public event EventHandler OnAimAction;
     public event EventHandler OnSlideAction;
     public event EventHandler<OnSprintActionEventArgs> OnSprintAction;
+    public event EventHandler OnMousePosition;
     public class OnSprintActionEventArgs : EventArgs{ public bool isSprint; }
 
     private void Awake()
@@ -34,6 +35,12 @@ public class GameInput : MonoBehaviour
         playerInputActions.Player.Roll.performed += Roll_performed;
         playerInputActions.Player.Aim.performed += Aim_performed;
         playerInputActions.Player.Slide.performed += Slide_performed;
+        playerInputActions.Player.ToolTip.performed += ToolTip_performed;
+    }
+
+    private void ToolTip_performed(InputAction.CallbackContext obj)
+    {
+        OnMousePosition?.Invoke(this, EventArgs.Empty);
     }
 
     private void Slide_performed(InputAction.CallbackContext obj)
@@ -95,6 +102,13 @@ public class GameInput : MonoBehaviour
         //Debug.Log(inputVector);
 
         return inputVector;
+    }
+
+    public Vector2 GetMousePosition()
+    {
+        Vector2 mousePosition = playerInputActions.Player.ToolTip.ReadValue<Vector2>();
+
+        return mousePosition;
     }
 
     private void OnDestroy()

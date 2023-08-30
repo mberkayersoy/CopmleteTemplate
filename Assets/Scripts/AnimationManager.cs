@@ -5,14 +5,23 @@ using UnityEngine;
 
 public class AnimationManager : MonoBehaviour
 {
-    [SerializeField] private Animator animator;
-    [SerializeField] private PlayerMovement playerMovement;
+    private enum State
+    {
+        Knife,
+        Bow,
+    }
+
     private GameInput gameInput;
+    [SerializeField] private PlayerMovement playerMovement;
     [SerializeField] private Jump jump;
+    [SerializeField] private ThirdPersonCameraController cameraController;
+
+    [SerializeField] private Animator animator;
+    [SerializeField] private AnimatorOverrideController[] overrideControllers;
 
     public event EventHandler OnRollComplete;
 
-    // animation IDs
+    // Animation IDs
     private int animIDSpeed;
     private int animIDGrounded;
     private int animIDJump;
@@ -20,25 +29,44 @@ public class AnimationManager : MonoBehaviour
     private int animIDMotionSpeed;
     private int animIDRoll;
     private int animIDSlide;
-
+    private int animIDAiming;
 
     private void Awake()
     {
         AssignAnimationIDs();
+        cameraController = GetComponent<ThirdPersonCameraController>();
     }
+
     private void Start()
     {
         gameInput = GameInput.Instance;
+
 
         playerMovement.OnSlideAction += PlayerMovement_OnSlideAction;
         playerMovement.OnRollAction += PlayerMovement_OnRollAction; ;
         playerMovement.OnSpeedChangeAction += PlayerMovement_OnSpeedChangeAction;
         playerMovement.OnMotionBlendChangeAction += PlayerMovement_OnMotionBlendChangeAction;
         playerMovement.OnGrondedChangeAction += PlayerMovement_OnGrondedChangeAction;
+        cameraController.OnAimStateChange += CameraController_OnAimStateChange;
         jump.OnFreeFallAction += Jump_OnFreeFallAction;
         jump.OnJumpAction += Jump_OnJumpAction;
+        
 
     }
+
+    private void CameraController_OnAimStateChange(object sender, ThirdPersonCameraController.OnAimStateChangeEventArgs e)
+    {
+        animator.SetBool(animIDAiming, e.isAiming);
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            SetAnimator(State.Knife);
+        }
+    }
+
 
     private void PlayerMovement_OnSlideAction(object sender, PlayerMovement.OnSlideActionEventArgs e)
     {
@@ -85,6 +113,12 @@ public class AnimationManager : MonoBehaviour
         animator.SetFloat(animIDSpeed, e.speed);
     }
 
+    private void SetAnimator(State animatorState)
+    {
+        //animator.CrossFade(animatorState.ToString(), 1f);
+        animator.runtimeAnimatorController = overrideControllers[(int)animatorState];
+    }
+
     private void AssignAnimationIDs()
     {
         animIDSpeed = Animator.StringToHash("Speed");
@@ -94,6 +128,7 @@ public class AnimationManager : MonoBehaviour
         animIDMotionSpeed = Animator.StringToHash("MotionSpeed");
         animIDRoll = Animator.StringToHash("Roll");
         animIDSlide = Animator.StringToHash("Slide");
+        animIDAiming = Animator.StringToHash("Aim");
     }
 
 }
