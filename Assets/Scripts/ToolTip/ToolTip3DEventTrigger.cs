@@ -10,14 +10,13 @@ public class ToolTip3DEventTrigger : MonoBehaviour
 
     public event EventHandler<OnSelectedObjectChangedEventArgs> OnSelectedObjectChanged;
     public class OnSelectedObjectChangedEventArgs : EventArgs { public ToolTip3DEventTrigger selectedObject; }
-    private void OnMouseEnter()
+    public void OnCrosshairEnter()
     {
         onPointerEnter?.Invoke();
         OnSelectedObjectChanged?.Invoke(this, new OnSelectedObjectChangedEventArgs
         {
             selectedObject = this
-        });
-
+        });  
     }
     private void OnMouseExit()
     {

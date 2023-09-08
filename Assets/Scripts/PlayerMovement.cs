@@ -82,7 +82,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void GameInput_OnSlideAction(object sender, EventArgs e)
     {
-        if (!isRolling && !isSliding && !jump.IsJumping && _speed >= 5f)
+        if (!isRolling && !isSliding && GroundCheck() && _speed >= 5f)
         {
             isSliding = true;
             OnSlideAction?.Invoke(this, new OnSlideActionEventArgs
@@ -174,18 +174,11 @@ public class PlayerMovement : MonoBehaviour
 
         Vector3 targetDirection = Quaternion.Euler(0.0f, _targetRotation, 0.0f) * Vector3.forward;
 
-        if (GroundCheck())
-        {
-            // move the player
-            characterController.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
-                                new Vector3(0.0f, jump.VerticalVelocity, 0.0f) * Time.deltaTime);
-        }
-        else
-        {
-            // move the player
-            characterController.Move(targetDirection.normalized * (_speed * speedMultOnJump * Time.deltaTime) +
-                             new Vector3(0.0f, jump.VerticalVelocity, 0.0f) * Time.deltaTime);
-        }
+
+        // move the player
+        characterController.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
+                            new Vector3(0.0f, jump.VerticalVelocity, 0.0f) * Time.deltaTime);
+
 
 
         OnSpeedChangeAction?.Invoke(this, new OnSpeedChangeActionEventArgs

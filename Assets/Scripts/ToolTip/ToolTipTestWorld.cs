@@ -4,9 +4,10 @@ using UnityEngine;
 
 public class ToolTipTestWorld : MonoBehaviour
 {
+    ToolTip3DEventTrigger listener;
     private void Start()
     {
-        ToolTip3DEventTrigger listener = GetComponent<ToolTip3DEventTrigger>();
+        listener = GetComponent<ToolTip3DEventTrigger>();
 
         if (listener != null)
         {
@@ -17,7 +18,7 @@ public class ToolTipTestWorld : MonoBehaviour
 
     private void OnCrosshairEnter()
     {
-        ToolTipWorld.ShowToolTipStatic(gameObject.name);
+        ToolTipWorld.ShowToolTipStatic(gameObject.name, transform.position + new Vector3(0, 0.3f, 0));
     }
 
     private void OnCrosshairExit()

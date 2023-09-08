@@ -10,7 +10,7 @@ public class ToolTipWorld : MonoBehaviour
 
     [SerializeField] private TextMeshProUGUI tooltipText;
     [SerializeField] private RectTransform backgroundRectTransform;
-
+    [SerializeField] private PickupProgressBarUI progressBarUI;
 
     private void Awake()
     {
@@ -21,7 +21,7 @@ public class ToolTipWorld : MonoBehaviour
     {
         HideToolTipStatic();
     }
-    private void ShowTooltip(string tooltipString)
+    private void ShowTooltip(string tooltipString, Vector3 tooltipPosition)
     {
         gameObject.SetActive(true);
 
@@ -32,15 +32,18 @@ public class ToolTipWorld : MonoBehaviour
 
         backgroundRectTransform.sizeDelta = backgroundSize;
 
+        GetComponent<RectTransform>().position = tooltipPosition;
+
     }
     private void HideToolTip()
     {
         gameObject.SetActive(false);
     }
 
-    public static void ShowToolTipStatic(string tooltipString)
+    public static void ShowToolTipStatic(string tooltipString, Vector3 tooltipPosition)
     {
-        Instance.ShowTooltip(tooltipString);
+        if (string.IsNullOrEmpty(tooltipString)) return;
+        Instance.ShowTooltip(tooltipString, tooltipPosition);
     }
 
     public static void HideToolTipStatic()

@@ -10,6 +10,7 @@ public class GameInput : MonoBehaviour
 
     private PlayerInputActions playerInputActions;
 
+    // Movement
     public event EventHandler OnPlayerMovementAction;
     public event EventHandler OnJumpAction;
     public event EventHandler OnMousePositionDeltaAction;
@@ -18,8 +19,16 @@ public class GameInput : MonoBehaviour
     public event EventHandler OnSlideAction;
     public event EventHandler<OnSprintActionEventArgs> OnSprintAction;
     public event EventHandler OnMousePosition;
+    public event EventHandler OnInteractAction;
     public class OnSprintActionEventArgs : EventArgs{ public bool isSprint; }
 
+    // UI
+    private bool isInventoryActive;
+    public event EventHandler<OnUIInventoryActionEventArgs> OnUIInventoryAction;
+    public event EventHandler<OnItemDropActionEventArgs> OnItemDropAction;
+
+    public class OnUIInventoryActionEventArgs : EventArgs { public bool isActive; }
+    public class OnItemDropActionEventArgs : EventArgs { public Vector2 mousePosition; }
     private void Awake()
     {
         Instance = this;
@@ -27,6 +36,7 @@ public class GameInput : MonoBehaviour
         playerInputActions = new PlayerInputActions();
 
         playerInputActions.Player.Enable();
+        playerInputActions.UI.Enable();
 
         playerInputActions.Player.Jump.performed += Jump_performed;
         playerInputActions.Player.Movement.performed += Movement_performed;
@@ -36,6 +46,32 @@ public class GameInput : MonoBehaviour
         playerInputActions.Player.Aim.performed += Aim_performed;
         playerInputActions.Player.Slide.performed += Slide_performed;
         playerInputActions.Player.ToolTip.performed += ToolTip_performed;
+        playerInputActions.Player.Interact.performed += Interact_performed;
+
+        playerInputActions.UI.Inventory.performed += Inventory_performed;
+        playerInputActions.UI.DropItem.performed += DropItem_performed;
+    }
+
+    private void DropItem_performed(InputAction.CallbackContext obj)
+    {
+        OnItemDropAction?.Invoke(this, new OnItemDropActionEventArgs
+        {
+            mousePosition = GetMousePosition()
+        });
+    }
+
+    private void Inventory_performed(InputAction.CallbackContext obj)
+    {
+        isInventoryActive = !isInventoryActive;
+        OnUIInventoryAction?.Invoke(this, new OnUIInventoryActionEventArgs
+        {
+            isActive = playerInputActions.UI.Inventory.IsPressed()
+        });
+    }
+
+    private void Interact_performed(InputAction.CallbackContext obj)
+    {
+        OnInteractAction?.Invoke(this, EventArgs.Empty);
     }
 
     private void ToolTip_performed(InputAction.CallbackContext obj)
@@ -50,7 +86,10 @@ public class GameInput : MonoBehaviour
 
     private void Aim_performed(InputAction.CallbackContext obj)
     {
-        OnAimAction?.Invoke(this, EventArgs.Empty);
+        if (!isInventoryActive)
+        {
+            OnAimAction?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     private void Roll_performed(InputAction.CallbackContext obj)
