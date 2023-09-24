@@ -7,7 +7,7 @@ using Cinemachine;
 public class ThirdPersonCameraController : MonoBehaviour
 {
     private GameInput gameInput;
-    private PlayerMovement playerMovement;
+    private ThirdPersonMovement playerMovement;
 
 
     public event EventHandler<OnAimStateChangeEventArgs> OnAimStateChange;
@@ -16,9 +16,6 @@ public class ThirdPersonCameraController : MonoBehaviour
 
     private const float _threshold = 0.01f;
     private const float sensitivityMultiplier = 100f;
-    private bool isAiming;
-
-    [SerializeField] private CinemachineVirtualCamera aimVirtucalCamera;
 
     [Tooltip("The follow target set in the Cinemachine Virtual Camera that the camera will follow")]
     [SerializeField] private GameObject CinemachineCameraTarget;
@@ -37,13 +34,7 @@ public class ThirdPersonCameraController : MonoBehaviour
 
     [Header("SENSITIVITY")]
     [SerializeField] private float normalSensitivity = 1f;
-    [SerializeField] private float aimSensitivity = 0.5f;
-    [SerializeField] private float aimRotationSpeed = 15f;
     private float currentSensitivity;
-
-    [SerializeField] private LayerMask aimColliderLayerMask = new LayerMask();
-    [SerializeField] private Transform debugTransform;
-
 
     // cinemachine
     private float _cinemachineTargetYaw;
@@ -52,65 +43,15 @@ public class ThirdPersonCameraController : MonoBehaviour
     private void Start()
     {
         gameInput = GameInput.Instance;
-        playerMovement = GetComponent<PlayerMovement>();
-
-        gameInput.OnAimAction += GameInput_OnAimAction;
+        playerMovement = GetComponent<ThirdPersonMovement>();
 
         currentSensitivity = normalSensitivity;
         _cinemachineTargetYaw = CinemachineCameraTarget.transform.rotation.eulerAngles.y;
     }
 
-
-    private void Update()
-    {
-        Vector3 mouseWorldPosition = Vector3.zero;
-
-        Vector2 screenCenterPoint = new Vector2(Screen.width / 2, Screen.height / 2);
-        Ray ray = Camera.main.ScreenPointToRay(screenCenterPoint);
-
-        if (Physics.Raycast(ray, out RaycastHit raycastHit, 999f, aimColliderLayerMask))
-        {
-            debugTransform.position = raycastHit.point;
-            mouseWorldPosition = raycastHit.point;
-
-        }
-
-        if (isAiming)
-        {
-            Vector3 worldAimTarget = mouseWorldPosition;
-            worldAimTarget.y = transform.position.y;
-            Vector3 aimDirection = (worldAimTarget - transform.position).normalized;
-
-            transform.forward = Vector3.Lerp(transform.forward, aimDirection, Time.deltaTime * aimRotationSpeed);
-        }
-    }
-
     private void LateUpdate()
     {
         CameraRotation();
-    }
-
-    private void GameInput_OnAimAction(object sender, System.EventArgs e)
-    {
-
-        isAiming = !isAiming;
-        OnAimStateChange?.Invoke(this, new OnAimStateChangeEventArgs
-        {
-            isAiming = isAiming
-        });
-        aimVirtucalCamera.gameObject.SetActive(isAiming);
-
-        if (isAiming)
-        {
-            currentSensitivity = aimSensitivity;
-            playerMovement.SetRotateOnMove(isAiming);
-        }
-        else
-        {
-            currentSensitivity = normalSensitivity;
-            playerMovement.SetRotateOnMove(!isAiming);
-        }
-
     }
 
     private void CameraRotation()
@@ -140,8 +81,4 @@ public class ThirdPersonCameraController : MonoBehaviour
         return Mathf.Clamp(lfAngle, lfMin, lfMax);
     }
 
-    public bool GetIsAiming()
-    {
-        return isAiming;
-    }
 }

@@ -179,7 +179,6 @@ GameObject:
   - component: {fileID: 1814586511464634952}
   - component: {fileID: 2364506505842284192}
   - component: {fileID: 7708801220232264169}
-  - component: {fileID: 2431910056553258801}
   m_Layer: 7
   m_Name: RifleWeapon
   m_TagString: Untagged
@@ -266,22 +265,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a137ad29204ad464db2e840b6a226751, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  item: {fileID: 0}
---- !u!114 &2431910056553258801
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4780129913719840559}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 411c50836d62ce4498538044069b81fa, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  stackableType: 0
-  itemPrefab: {fileID: 0}
-  itemName: Rifle
 --- !u!1 &5362637672480931386
 GameObject:
   m_ObjectHideFlags: 0
