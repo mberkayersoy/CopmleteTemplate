@@ -32,6 +32,8 @@ public class ThirdPersonCharacterController : MonoBehaviour
     private EnvironmentScan environmentScan;
 
     [Header("MOVEMENT")]
+    [SerializeField] private Vector3 targetPosition;
+    [SerializeField] private bool isParkour;
     [SerializeField] private float moveSpeed = 2.0f;
     [SerializeField] private float sprintSpeed = 5.335f;
     [SerializeField] private float rotationSmoothTime = 0.12f;
@@ -101,6 +103,8 @@ public class ThirdPersonCharacterController : MonoBehaviour
         switch (environmentScan.relevantAction)
         {
             case RelevantAction.Edge:
+                targetPosition = environmentScan.GetTargetHangPosition();
+                isParkour = true;
                 OnJumpAction?.Invoke(this, new OnJumpActionEventArgs
                 {
                     relevantAction = environmentScan.relevantAction,
@@ -117,6 +121,7 @@ public class ThirdPersonCharacterController : MonoBehaviour
             case RelevantAction.None:
                 //if (isJumping) return;
                 isJumping = true;
+                CalculateJumpHeight();
                 OnJumpAction?.Invoke(this, new OnJumpActionEventArgs
                 {
                     relevantAction = environmentScan.relevantAction,
@@ -132,10 +137,23 @@ public class ThirdPersonCharacterController : MonoBehaviour
         Move();
         Jump();
         ApplyGravity();
+        MoveTargetHangPosition();
     }
 
+    private void MoveTargetHangPosition()
+    {
+        if (isParkour)
+        {
+            if (transform.position != targetPosition)
+            {
+                //Debug.Log("MOVE TARGET");
+                controller.Move((targetPosition - transform.position).normalized  * Time.deltaTime);
+            }
+        }
+    }
     private void Move()
     {
+        if (isParkour) return;
         // set target speed based on move speed, sprint speed and if sprint is pressed
         float targetSpeed = isSprinting ? sprintSpeed : moveSpeed;
 
@@ -194,8 +212,6 @@ public class ThirdPersonCharacterController : MonoBehaviour
             }
         }
 
-
-
         Vector3 targetDirection = Quaternion.Euler(0.0f, _targetRotation, 0.0f) * Vector3.forward;
 
         // move the player
@@ -214,6 +230,23 @@ public class ThirdPersonCharacterController : MonoBehaviour
 
     }
 
+
+    // If there is an obstacle above the player, update jumpHeight
+    private void CalculateJumpHeight()
+    {
+        JumpHeight = 1.2f;
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position + new Vector3(0, 1.77f, 0), Vector3.up, out hit, JumpHeight)) 
+        {
+            Debug.DrawLine(transform.position + new Vector3(0, 1.77f, 0), hit.point);
+            float distance = Vector3.Distance(transform.position + new Vector3(0, 1.77f, 0), hit.point);
+
+            if (distance < JumpHeight)
+            {
+                JumpHeight -= distance ;
+            }
+        }
+    }
     private void Jump()
     {
         if (isGrounded)
@@ -284,6 +317,7 @@ public class ThirdPersonCharacterController : MonoBehaviour
 
     private void ApplyGravity()
     {
+        if (isParkour) return;
         // apply gravity over time if under terminal (multiply by delta time twice to linearly speed up over time)
         if (VerticalVelocity < terminalVelocity)
         {

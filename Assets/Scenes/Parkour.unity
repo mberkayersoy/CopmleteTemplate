@@ -5198,7 +5198,7 @@ Transform:
   m_GameObject: {fileID: 470080786}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 3.5, z: 1}
+  m_LocalPosition: {x: 0, y: 1.75, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5255,37 +5255,6 @@ Transform:
   - {fileID: 1149057703}
   - {fileID: 25275878}
   m_Father: {fileID: 1901909115}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &499557166
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 499557167}
-  m_Layer: 0
-  m_Name: lowPoint
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &499557167
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 499557166}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.104, z: 1.25}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 6231071812416674376}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &531116391
 GameObject:
@@ -5423,7 +5392,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 1.110223e-17, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 5.09, y: 2.19, z: 24.74}
-  m_LocalScale: {x: 1.1254541, y: 1, z: 2.5702565}
+  m_LocalScale: {x: 1.1254541, y: 1.0875, z: 2.5702565}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1531632975}
@@ -11667,8 +11636,8 @@ Transform:
   m_GameObject: {fileID: 961816511}
   serializedVersion: 2
   m_LocalRotation: {x: 1.110223e-17, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 4.64, y: 2.75, z: 13.19}
-  m_LocalScale: {x: 1, y: 0.29281, z: 2.9192}
+  m_LocalPosition: {x: 4.64, y: 2.67, z: 13.19}
+  m_LocalScale: {x: 1, y: 0.05938592, z: 2.9192}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1531632975}
@@ -17580,7 +17549,6 @@ Transform:
   - {fileID: 2086336787}
   - {fileID: 6545923097953112753}
   - {fileID: 470080787}
-  - {fileID: 499557167}
   - {fileID: 853874873}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -17673,6 +17641,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   animationManager: {fileID: 9078831210239723776}
   animator: {fileID: 9078831210239723777}
+  targetPosition: {x: 0, y: 0, z: 0}
+  isParkour: 0
   moveSpeed: 3
   sprintSpeed: 6
   rotationSmoothTime: 0.12
@@ -17745,6 +17715,7 @@ MonoBehaviour:
   numberOfRaycasts: 30
   maxDistanceToPlayer: 1.5
   minSurfaceNormalAngle: 115
+  currentTargetPosition: {x: 0, y: 0, z: 0}
   maxStepUpHeight: 5
   minStepUpHeight: 3.01
   minVaultHeight: 5

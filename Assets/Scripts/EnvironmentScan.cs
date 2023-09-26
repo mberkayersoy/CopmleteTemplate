@@ -22,6 +22,8 @@ public class EnvironmentScan : MonoBehaviour
     [SerializeField] private int numberOfRaycasts = 30; // Raycast count
     [SerializeField] private float maxDistanceToPlayer = 2f;
     [Range(0, 179)] [SerializeField] private float minSurfaceNormalAngle = 140f;
+    [SerializeField] private Vector3 currentTargetPosition;
+    public Vector3 CurrentTargetPosition { get => currentTargetPosition; set => currentTargetPosition = value; }
 
     [Space(5)]
 
@@ -35,6 +37,7 @@ public class EnvironmentScan : MonoBehaviour
     private ThirdPersonCharacterController playerScript;
     private CharacterController controller;
     private float playerHeight;
+
 
     private void Start()
     {
@@ -98,13 +101,18 @@ public class EnvironmentScan : MonoBehaviour
 
     }
 
-    public Vector3 GetTargetHangPoint()
+    public Vector3 GetTargetHangPosition()
     {
-        return highestHit.hitInfo.point;
-    }
-    public void SetTargetVaultPoint()
-    {
-        
+        Vector3 capsuleRadiusOffset = GetSurfaceNormalDirection(highestHit.hitInfo.normal) switch
+        {
+            SurfaceNormalDirection.Backward => new Vector3(0, 0, -controller.radius - controller.skinWidth),
+            SurfaceNormalDirection.Right => new Vector3(controller.radius + controller.skinWidth, 0, 0),
+            SurfaceNormalDirection.Left => new Vector3(-controller.radius - controller.skinWidth, 0, 0),
+            _ => new Vector3(0, 0, controller.radius + controller.skinWidth),
+        };
+     
+        currentTargetPosition = new Vector3(highestHit.hitInfo.point.x + capsuleRadiusOffset.x, highestHit.hitInfo.point.y - controller.height, highestHit.hitInfo.point.z + capsuleRadiusOffset.z); 
+        return currentTargetPosition;
     }
 
     private RelevantAction CheckDepth(Vector3 hitPoint, Vector3 hitNormal)
@@ -114,12 +122,13 @@ public class EnvironmentScan : MonoBehaviour
         float defaultAngle = 85f;
 
         int raycastCounter = 0;
+
         for (int i = 0; i < 2; i++)
         {
 
             float angle = defaultAngle - i * angleThreshHold;
 
-            Vector3 direction = CharacterDireciton(-hitNormal) switch
+            Vector3 direction = GetSurfaceNormalDirection(-hitNormal) switch
             {
                 SurfaceNormalDirection.Backward => Quaternion.Euler(-angle, 0, 0) * -hitNormal,
                 SurfaceNormalDirection.Right => Quaternion.Euler(0, 0, -angle) * -hitNormal,
@@ -165,7 +174,7 @@ public class EnvironmentScan : MonoBehaviour
         else if (hitPoint.y < playerHeight && raycastCounter == 1)
         {
             //Debug.Log("VAULT");
-
+            currentTargetPosition = highestHit.hitInfo.point;
             return relevantAction = RelevantAction.Vault;
         }
         else if (hitPoint.y < playerHeight && raycastCounter == 2)
@@ -180,7 +189,7 @@ public class EnvironmentScan : MonoBehaviour
 
     }
 
-    private SurfaceNormalDirection CharacterDireciton(Vector3 hitNormal)
+    private SurfaceNormalDirection GetSurfaceNormalDirection(Vector3 hitNormal)
     {
         if (Mathf.Abs(hitNormal.x) > Mathf.Abs(hitNormal.z))
         {
