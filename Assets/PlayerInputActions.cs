@@ -116,6 +116,15 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""StopHanging"",
+                    ""type"": ""PassThrough"",
+                    ""id"": ""f34bae37-5ee4-4459-8491-7a4f8e06f524"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -272,6 +281,17 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
                     ""action"": ""Hang"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""6f082bfd-a2ca-4386-9bf5-059f43fb6ca7"",
+                    ""path"": ""<Keyboard>/e"",
+                    ""interactions"": ""Press(behavior=2)"",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""StopHanging"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         },
@@ -338,6 +358,7 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
         m_Player_ToolTip = m_Player.FindAction("ToolTip", throwIfNotFound: true);
         m_Player_Shoot = m_Player.FindAction("Shoot", throwIfNotFound: true);
         m_Player_Hang = m_Player.FindAction("Hang", throwIfNotFound: true);
+        m_Player_StopHanging = m_Player.FindAction("StopHanging", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Inventory = m_UI.FindAction("Inventory", throwIfNotFound: true);
@@ -413,6 +434,7 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_ToolTip;
     private readonly InputAction m_Player_Shoot;
     private readonly InputAction m_Player_Hang;
+    private readonly InputAction m_Player_StopHanging;
     public struct PlayerActions
     {
         private @PlayerInputActions m_Wrapper;
@@ -427,6 +449,7 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
         public InputAction @ToolTip => m_Wrapper.m_Player_ToolTip;
         public InputAction @Shoot => m_Wrapper.m_Player_Shoot;
         public InputAction @Hang => m_Wrapper.m_Player_Hang;
+        public InputAction @StopHanging => m_Wrapper.m_Player_StopHanging;
         public InputActionMap Get() { return m_Wrapper.m_Player; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -466,6 +489,9 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
             @Hang.started += instance.OnHang;
             @Hang.performed += instance.OnHang;
             @Hang.canceled += instance.OnHang;
+            @StopHanging.started += instance.OnStopHanging;
+            @StopHanging.performed += instance.OnStopHanging;
+            @StopHanging.canceled += instance.OnStopHanging;
         }
 
         private void UnregisterCallbacks(IPlayerActions instance)
@@ -500,6 +526,9 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
             @Hang.started -= instance.OnHang;
             @Hang.performed -= instance.OnHang;
             @Hang.canceled -= instance.OnHang;
+            @StopHanging.started -= instance.OnStopHanging;
+            @StopHanging.performed -= instance.OnStopHanging;
+            @StopHanging.canceled -= instance.OnStopHanging;
         }
 
         public void RemoveCallbacks(IPlayerActions instance)
@@ -583,6 +612,7 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
         void OnToolTip(InputAction.CallbackContext context);
         void OnShoot(InputAction.CallbackContext context);
         void OnHang(InputAction.CallbackContext context);
+        void OnStopHanging(InputAction.CallbackContext context);
     }
     public interface IUIActions
     {

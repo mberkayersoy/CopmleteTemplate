@@ -5,12 +5,6 @@ using UnityEngine;
 
 public class AnimationManager : MonoBehaviour
 {
-    private enum State
-    {
-        Knife,
-        Bow,
-    }
-
     private GameInput gameInput;
     [SerializeField] private ThirdPersonCharacterController playerController;
     [SerializeField] private ThirdPersonCameraController cameraController;
@@ -29,9 +23,11 @@ public class AnimationManager : MonoBehaviour
     private int animIDJump;
     private int animIDFreeFall;
     private int animIDMotionSpeed;
-    private int animIDIdleToHang;
+    private int animIDMovementToHang;
+    private int animIDHangIdle;
     private int animIDVault;
-
+    private int animIDHorizontal;
+    private int animIDVertical;
     private void Awake()
     {
         AssignAnimationIDs();
@@ -45,8 +41,32 @@ public class AnimationManager : MonoBehaviour
         playerController.OnGroundedChangeAction += PlayerController_OnGroundedChangeAction;
         playerController.OnFreeFallAction += PlayerController_OnFreeFallAction;
         playerController.OnJumpAction += PlayerController_OnSpaceKeyAction;
+        playerController.OnHangAction += PlayerController_OnHangAction;
+        playerController.OnHangIdleAction += PlayerController_OnHangIdleAction;
         //gameInput.OnVaultAction += GameInput_OnVaultAction;
         //gameInput.OnHangAction += GameInput_OnHangAction;
+    }
+
+    private void Update()
+    {
+        SetMovementVectorParams();
+    }
+    private void SetMovementVectorParams()
+    {
+        Vector2 movementVector = gameInput.GetMovementVectorNormalized();
+
+        animator.SetFloat(animIDHorizontal, movementVector.x * Time.smoothDeltaTime);
+        animator.SetFloat(animIDVertical, movementVector.y * Time.smoothDeltaTime);
+    }
+
+    private void PlayerController_OnHangIdleAction(object sender, ThirdPersonCharacterController.OnHangActionEventArgs e)
+    {
+        animator.SetBool(animIDHangIdle, e.isHanging);
+    }
+
+    private void PlayerController_OnHangAction(object sender, ThirdPersonCharacterController.OnHangActionEventArgs e)
+    {
+        animator.SetBool(animIDMovementToHang, e.isHanging);
     }
 
     private void PlayerController_OnSpaceKeyAction(object sender, ThirdPersonCharacterController.OnJumpActionEventArgs e)
@@ -54,7 +74,7 @@ public class AnimationManager : MonoBehaviour
         switch (e.relevantAction)
         {
             case RelevantAction.Edge:
-                animator.SetBool(animIDIdleToHang, true);
+                animator.SetBool(animIDMovementToHang, true);
                 break;
             case RelevantAction.Vault:
                 animator.SetBool(animIDVault, true);
@@ -111,8 +131,11 @@ public class AnimationManager : MonoBehaviour
         animIDJump = Animator.StringToHash("Jump");
         animIDFreeFall = Animator.StringToHash("FreeFall");
         animIDMotionSpeed = Animator.StringToHash("MotionSpeed");
-        animIDIdleToHang = Animator.StringToHash("IdleToHang");
+        animIDMovementToHang = Animator.StringToHash("MovementToHang");
+        animIDHangIdle = Animator.StringToHash("HangIdle");
         animIDVault = Animator.StringToHash("Vault");
+        animIDHorizontal = Animator.StringToHash("Horizontal");
+        animIDVertical = Animator.StringToHash("Vertical");
     }
     private void OnFootstep(AnimationEvent animationEvent)
     {

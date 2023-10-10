@@ -4,7 +4,8 @@ using UnityEngine;
 
 public class EnvironmentScan : MonoBehaviour
 {
-    public RaycastHitInfo highestHit;
+    public RaycastHitInfo highestLedge;
+    public RelevantAction relevantAction;
 
     [Header("DEBUG VARIABLES")]
     [SerializeField] private bool showDebug;
@@ -32,12 +33,13 @@ public class EnvironmentScan : MonoBehaviour
     [SerializeField] private float minStepUpHeight = 3.01f;
     [SerializeField] private float minVaultHeight = 0.51f;
     [SerializeField] private float maxVaultHeight = 1.2f;
-    public RelevantAction relevantAction;
+    public SurfaceNormalDirection currentSurfaceNormalDirection;
 
     private ThirdPersonCharacterController playerScript;
     private CharacterController controller;
     private float playerHeight;
 
+    private List<RaycastHit> rayHitList;
 
     private void Start()
     {
@@ -45,21 +47,31 @@ public class EnvironmentScan : MonoBehaviour
         playerScript = GetComponent<ThirdPersonCharacterController>();
         relevantAction = RelevantAction.None;
     }
+
     private void Update()
     {
         CheckFront();
     }
 
+    private void HangScan()
+    {
+        for (int i = 0; i < numberOfRaycasts; i++)
+        {
+            Vector3 raycastOrigin = currentTargetPosition + new Vector3(0, controller.stepOffset, 0) + new Vector3(0, i * rayHeightOffset, 0);
+        }
+    }
     private void CheckFront()
     {
-        highestHit = new RaycastHitInfo();
+        int highestHitIndex = 0;
+        rayHitList = new List<RaycastHit>();
+        highestLedge = new RaycastHitInfo();
         Vector3 characterPosition = transform.position;
         Vector3 characterForward = transform.TransformDirection(Vector3.forward);
         playerHeight = transform.position.y + controller.height;
 
         for (int i = 0; i < numberOfRaycasts; i++)
         {
-            Vector3 raycastOrigin = characterPosition + new Vector3(0, controller.stepOffset, 0) + new Vector3(0, i * rayHeightOffset, 0);
+            Vector3 raycastOrigin = characterPosition + new Vector3(0, controller.height, 0) + new Vector3(0, i * rayHeightOffset, 0);
 
             RaycastHit hit;
             if (Physics.Raycast(raycastOrigin, characterForward, out hit, rayLength, obstacleLayer))
@@ -67,19 +79,21 @@ public class EnvironmentScan : MonoBehaviour
                 // check hit angle
                 float angleToCharacter = Vector3.Angle(hit.normal, characterForward);
 
-                //Debug.Log("hit.poin.y : " + hit.point.y);
-                //Debug.Log("playerHeight: " + playerHeight);
                 // check conditions
-                if (angleToCharacter >= minSurfaceNormalAngle && hit.point.y > highestHit.hitInfo.point.y &&
-                    Vector3.Distance(hit.point, characterPosition + new Vector3(0, i * rayHeightOffset, 0)) <= maxDistanceToPlayer)
+                if (angleToCharacter >= minSurfaceNormalAngle && hit.point.y > highestLedge.hitInfo.point.y) //&&
+                     //hit.distance <= highestLedge.hitInfo.distance)// Vector3.Distance(hit.point, characterPosition + new Vector3(0, i * rayHeightOffset, 0)) <= maxDistanceToPlayer)
                 {
-                    RaycastHitInfo newInfo = new RaycastHitInfo(hit, Vector3.Distance(hit.point, characterPosition),
+                    RaycastHitInfo newLedge = new RaycastHitInfo(hit, Vector3.Distance(hit.point, characterPosition),
                         hit.point.y, angleToCharacter);
+                    highestHitIndex = i;
+                    highestLedge = newLedge;
 
-                    highestHit = newInfo;
-                    Debug.DrawLine(raycastOrigin, raycastOrigin + characterForward * rayLength, Color.green);
+                    //rayHits.Add(i, hit);
+                    rayHitList.Add(hit);
+
+                    Debug.DrawLine(raycastOrigin, hit.point, Color.green);
                 }
-               else
+                else
                 {
                     Debug.DrawLine(raycastOrigin, raycastOrigin + characterForward * rayLength, Color.red);
                 }
@@ -88,22 +102,59 @@ public class EnvironmentScan : MonoBehaviour
             {
                 // if there is no hit.
                 Debug.DrawLine(raycastOrigin, raycastOrigin + characterForward * rayLength, Color.yellow);
+                Debug.Log("No hit : " + hit);
+                //rayHits.Add(i, hit);
+                rayHitList.Add(hit);
             }
         }
-        if (highestHit.hitInfo.collider != null)
-        {
-            CheckDepth(highestHit.hitInfo.point, highestHit.hitInfo.normal);
-        }
-        else
-        {
-            relevantAction = RelevantAction.None;
-        }
+        CheckLedge();
+        //CheckDepth(highestHit.hitInfo.point, highestHit.hitInfo.normal);
+        //if (highestHitIndex != numberOfRaycasts - 1)
+        //{
+        //    CheckDepth(highestHit.hitInfo.point, highestHit.hitInfo.normal);
+        //}
+        //else
+        //{
+        //    relevantAction = RelevantAction.None;
+        //}
+    }
 
+    public void CheckLedge()
+    {
+        for (int i = rayHitList.Count - 1; i < rayHitList.Count; i++)
+        {
+            // Ledge
+            if (rayHitList[i].distance == 0f && rayHitList[i - 1].distance != 0f)
+            {
+                Debug.Log("IF");
+                relevantAction = RelevantAction.Edge;
+                RaycastHitInfo newLedge = new RaycastHitInfo(rayHitList[i - 1], rayHitList[i - 1].distance,
+                       rayHitList[i - 1].point.y, Vector3.Angle(rayHitList[i - 1].normal, transform.TransformDirection(Vector3.forward)));
+                highestLedge = newLedge;
+                GetSurfaceNormalDirection(rayHitList[i - 1].normal);
+            }
+            //Ledge
+            else if (rayHitList[i].distance != 0 && rayHitList[i - 1].distance != 0 && rayHitList[i].distance - rayHitList[i - 1].distance >= 0.1f) // 0.1f is ledge off set.
+            {
+                Debug.Log("ELSE IF");
+                RaycastHitInfo newLedge = new RaycastHitInfo(rayHitList[i - 1], rayHitList[i - 1].distance,
+                    rayHitList[i - 1].point.y, Vector3.Angle(rayHitList[i - 1].normal, transform.TransformDirection(Vector3.forward)));
+                highestLedge = newLedge;
+                relevantAction = RelevantAction.Edge;
+                GetSurfaceNormalDirection(rayHitList[i - 1].normal);
+            }
+            else
+            {
+                relevantAction = RelevantAction.None;
+            }
+
+            
+        }
     }
 
     public Vector3 GetTargetHangPosition()
     {
-        Vector3 capsuleRadiusOffset = GetSurfaceNormalDirection(highestHit.hitInfo.normal) switch
+        Vector3 capsuleRadiusOffset = GetSurfaceNormalDirection(highestLedge.hitInfo.normal) switch
         {
             SurfaceNormalDirection.Backward => new Vector3(0, 0, -controller.radius - controller.skinWidth),
             SurfaceNormalDirection.Right => new Vector3(controller.radius + controller.skinWidth, 0, 0),
@@ -111,13 +162,13 @@ public class EnvironmentScan : MonoBehaviour
             _ => new Vector3(0, 0, controller.radius + controller.skinWidth),
         };
      
-        currentTargetPosition = new Vector3(highestHit.hitInfo.point.x + capsuleRadiusOffset.x, highestHit.hitInfo.point.y - controller.height, highestHit.hitInfo.point.z + capsuleRadiusOffset.z); 
+        currentTargetPosition = new Vector3(highestLedge.hitInfo.point.x + capsuleRadiusOffset.x, highestLedge.hitInfo.point.y - controller.height, highestLedge.hitInfo.point.z + capsuleRadiusOffset.z); 
         return currentTargetPosition;
     }
 
     private RelevantAction CheckDepth(Vector3 hitPoint, Vector3 hitNormal)
     {
-        Vector3 origin = hitPoint + Vector3.up;
+        Vector3 origin = hitPoint + Vector3.up / 2;
         float angleThreshHold = 25f;
         float defaultAngle = 85f;
 
@@ -125,7 +176,6 @@ public class EnvironmentScan : MonoBehaviour
 
         for (int i = 0; i < 2; i++)
         {
-
             float angle = defaultAngle - i * angleThreshHold;
 
             Vector3 direction = GetSurfaceNormalDirection(-hitNormal) switch
@@ -158,23 +208,23 @@ public class EnvironmentScan : MonoBehaviour
 
         if (raycastCounter == 0)
         {
-            //Debug.Log("WALL");
+            Debug.Log("WALL");
             return relevantAction = RelevantAction.None;
         }
         else if (hitPoint.y >= playerHeight && raycastCounter == 1 )
         {
-            //Debug.Log("ONLY EDGE");
+            Debug.Log("ONLY EDGE");
             return relevantAction = RelevantAction.Edge;
         }
         else if (hitPoint.y >= playerHeight && raycastCounter == 2)
         {
-            //Debug.Log("EDGE AND AREA");
+            Debug.Log("EDGE AND AREA");
             return relevantAction = RelevantAction.Edge;
         }
         else if (hitPoint.y < playerHeight && raycastCounter == 1)
         {
             //Debug.Log("VAULT");
-            currentTargetPosition = highestHit.hitInfo.point;
+            currentTargetPosition = highestLedge.hitInfo.point;
             return relevantAction = RelevantAction.Vault;
         }
         else if (hitPoint.y < playerHeight && raycastCounter == 2)
@@ -195,10 +245,12 @@ public class EnvironmentScan : MonoBehaviour
         {
             if (hitNormal.x > 0)
             {
+                currentSurfaceNormalDirection = SurfaceNormalDirection.Right;
                 return SurfaceNormalDirection.Right;
             }
             else
             {
+                currentSurfaceNormalDirection = SurfaceNormalDirection.Left;
                 return SurfaceNormalDirection.Left;
             }
         }
@@ -206,10 +258,12 @@ public class EnvironmentScan : MonoBehaviour
         {
             if (hitNormal.z > 0)
             {
+                currentSurfaceNormalDirection = SurfaceNormalDirection.Forward;
                 return SurfaceNormalDirection.Forward;
             }
             else
             {
+                currentSurfaceNormalDirection = SurfaceNormalDirection.Backward;
                 return SurfaceNormalDirection.Backward;
             }
         }
@@ -220,10 +274,10 @@ public class EnvironmentScan : MonoBehaviour
         if (showDebug)
         {
             Gizmos.color = highestHitColor;
-            Gizmos.DrawSphere(highestHit.hitInfo.point, gizmosSphereRadius);
+            Gizmos.DrawSphere(highestLedge.hitInfo.point, gizmosSphereRadius);
         }
     }
-    private enum SurfaceNormalDirection
+    public enum SurfaceNormalDirection
     {
         Forward,
         Backward,
@@ -237,7 +291,8 @@ public enum RelevantAction
     Edge,
     Vault,
     StepUp,
-    None
+    None,
+    ClimbUp
 }
 
 

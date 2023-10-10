@@ -9,7 +9,6 @@ public class ThirdPersonCameraController : MonoBehaviour
     private GameInput gameInput;
     private ThirdPersonMovement playerMovement;
 
-
     public event EventHandler<OnAimStateChangeEventArgs> OnAimStateChange;
 
     public class OnAimStateChangeEventArgs : EventArgs { public bool isAiming; }

@@ -2,14 +2,21 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class ThirdPersonCharacterController : MonoBehaviour
 {
+    [Header("DEBUG")]
+    [SerializeField] private TextMeshProUGUI currentStateText;
+    [SerializeField] private TextMeshProUGUI previousStateText;
+
     // EVENTS
     public event EventHandler<OnSpeedChangeActionEventArgs> OnSpeedChangeAction;
     public event EventHandler<OnMotionBlendChangeActionEventArgs> OnMotionBlendChangeAction;
     public event EventHandler<OnGrondedChangeActionEventArgs> OnGroundedChangeAction;
-    public event EventHandler OnHangAction;
+    public event EventHandler<OnHangActionEventArgs> OnHangAction;
+    public event EventHandler<OnHangActionEventArgs> OnHangIdleAction;
+    public event EventHandler<OnHangJumpActionEventArgs> OnHangJumpAction;
     public event EventHandler<OnJumpActionEventArgs> OnJumpAction;
     public event EventHandler<OnFreeFallEventArgs> OnFreeFallAction;
 
@@ -18,6 +25,8 @@ public class ThirdPersonCharacterController : MonoBehaviour
     public class OnMotionBlendChangeActionEventArgs : EventArgs { public float animationBlend; }
     public class OnGrondedChangeActionEventArgs : EventArgs { public bool isGrounded; }
     public class OnFreeFallEventArgs : EventArgs { public bool freeFall; }
+    public class OnHangActionEventArgs : EventArgs { public bool isHanging; }
+    public class OnHangJumpActionEventArgs : EventArgs { public Vector2 movementVector; }
     public class OnJumpActionEventArgs : EventArgs 
     { 
         public bool isJumping;
@@ -27,9 +36,9 @@ public class ThirdPersonCharacterController : MonoBehaviour
     [Header("REFERENCES")]
     [SerializeField] private AnimationManager animationManager;
     [SerializeField] private Animator animator;
-    private CharacterController controller;
+    private CharacterController _characterController;
     private GameInput gameInput;
-    private EnvironmentScan environmentScan;
+    private EnvironmentScan _environmentScan;
 
     [Header("MOVEMENT")]
     [SerializeField] private Vector3 targetPosition;
@@ -39,125 +48,288 @@ public class ThirdPersonCharacterController : MonoBehaviour
     [SerializeField] private float rotationSmoothTime = 0.12f;
     [SerializeField] private float speedChangeRate = 10.0f;
 
+    [Space(5)]
+
     [Header("JUMP")]
     [SerializeField] private bool isJumping;
+    [SerializeField] private bool isHangJumping;
     //Time required to pass before entering the fall state. Useful for walking down stairs
-    [SerializeField] private float FallTimeout = 0.15f;
-    //The height the player can jump
-    [SerializeField] private float JumpHeight = 1.2f;
+    [SerializeField] private float fallTimeout = 0.15f;
+    //The height the player can jump from ground
+    [SerializeField] private float jumpHeight = 1.2f;
+    //The height the player can jump from hang
+    [SerializeField] private float hangJumpHeight = 1f;
     // The character uses its own gravity value. The engine default is -9.81f
-    [SerializeField] private float Gravity = -15.0f;
+    [SerializeField] private float gravity = -15.0f;
     //Time required to pass before being able to jump again. Set to 0f to instantly jump again
-    [SerializeField] private float JumpTimeout = 0.50f;
-    private float terminalVelocity = 53.0f;
+    [SerializeField] private float jumpTimeout = 0.50f;
+    [SerializeField] private float hangJumpTimeout = 0.50f;
     [SerializeField] private float verticalVelocity;
-    public float VerticalVelocity { get => verticalVelocity; private set => verticalVelocity = value; }
-    public bool IsJumping { get => isJumping ; private set => isJumping = value; }
-
-    // timeout deltatime
-    private float jumpTimeoutDelta;
-    private float fallTimeoutDelta;
+    private float terminalVelocity = 53.0f;
 
     [Header("CAMERA")]
     [SerializeField] private bool lockCameraPosition = false;
-    [SerializeField] private bool _rotateOnMove = true;
+    [SerializeField] private bool rotateOnMove = true;
 
     [Space(5)]
+
     [Header("BOOLEANS")]
     [SerializeField] private bool isSprinting;
-    [SerializeField] private bool isRolling;
-    [SerializeField] private bool isSliding;
     [SerializeField] private bool isGrounded;
+    [SerializeField] private bool isHanging;
+    [SerializeField] private bool stopHanging;
+
+    [Space(5)]
 
     [Header("GROUND")]
     [SerializeField] private Vector3 groundOffset;
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private float groundRadius = 0.3f;
 
+    [Space(5)]
+
+    [Header("AUDIO")]
+    public AudioClip LandingAudioClip;
+    public AudioClip[] FootstepAudioClips;
+    [Range(0, 1)] public float FootstepAudioVolume = 0.5f;
+
+    [Header("TIMER")]
+    [SerializeField] private float stopScanTimer;
+    private float stopHangingRemainingTime;
+
     private float _speed;
     private float _animationBlend;
     private float _targetRotation = 0.0f;
     private float _rotationVelocity;
 
-    public AudioClip LandingAudioClip;
-    public AudioClip[] FootstepAudioClips;
-    [Range(0, 1)] public float FootstepAudioVolume = 0.5f;
 
+
+    #region GetAndSet
+    public float VerticalVelocity { get => verticalVelocity; set => verticalVelocity = value; }
+    public bool IsJumping { get => isJumping ; set => isJumping = value; }
+    public GameInput GameInput { get => gameInput; set => gameInput = value; }
+    public CharacterController CharacterController { get => _characterController; }
+    public Vector3 TargetPosition { get => targetPosition; set => targetPosition = value; }
+    public bool IsParkour { get => isParkour; set => isParkour = value; }
+    public float MoveSpeed { get => moveSpeed; set => moveSpeed = value; }
+    public float SprintSpeed { get => sprintSpeed; set => sprintSpeed = value; }
+    public float RotationSmoothTime { get => rotationSmoothTime; set => rotationSmoothTime = value; }
+    public float SpeedChangeRate { get => speedChangeRate; set => speedChangeRate = value; }
+    public bool IsSprinting { get => isSprinting; set => isSprinting = value; }
+    public bool IsGrounded { get => isGrounded; set => isGrounded = value; }
+    public bool IsHanging { get => isHanging; set => isHanging = value; }
+    public bool StopHanging { get => stopHanging; set => stopHanging = value; }
+    public float TerminalVelocity { get => terminalVelocity;}
+    public EnvironmentScan EnvironmentScan { get => _environmentScan; set => _environmentScan = value; }
+    public float Speed { get => _speed; set => _speed = value; }
+    public float AnimationBlend { get => _animationBlend; set => _animationBlend = value; }
+    public float TargetRotation { get => _targetRotation; set => _targetRotation = value; }
+    public float FallTimeout { get => fallTimeout; set => fallTimeout = value; }
+    public float JumpHeight { get => jumpHeight; set => jumpHeight = value; }
+    public float Gravity { get => gravity; set => gravity = value; }
+    public float JumpTimeout { get => jumpTimeout; set => jumpTimeout = value; }
+    public Animator Animator { get => animator; }
+    public bool IsHangJumping { get => isHangJumping; set => isHangJumping = value; }
+    public float HangJumpHeight { get => hangJumpHeight; set => hangJumpHeight = value; }
+    public float StopScanTimer { get => stopScanTimer; set => stopScanTimer = value; }
+    public float StopHangingRemainingTime { get => stopHangingRemainingTime; set => stopHangingRemainingTime = value; }
+    public bool RotateOnMove { get => rotateOnMove; set => rotateOnMove = value; }
+    public float HangJumpTimeout { get => hangJumpTimeout; set => hangJumpTimeout = value; }
+
+    #endregion
+
+    // STATES
+    public State currentState;
+    public IdleState idleState;
+    public MovementState movementState;
+    public RunState runState;
+    public JumpState jumpState;
+    public HangJumpState hangJumpState;
+    public FreeFallState freeFallState;
+    public HangState hangState;
+    public VaultState vaultState;
+
+    // timeout deltatime
+    private float jumpTimeoutDelta;
+    private float hangJumpTimeoutDelta;
+    private float fallTimeoutDelta;
     private void Start()
     {
-        gameInput = GameInput.Instance;
-        controller = GetComponent<CharacterController>();
-        environmentScan = GetComponent<EnvironmentScan>();
+        GameInput = GameInput.Instance;
+        _characterController = GetComponent<CharacterController>();
+        _environmentScan = GetComponent<EnvironmentScan>();
         animationManager.OnEnableCharacterController += AnimationManager_OnEnableCharacterController;
         animationManager.OnDisableCharacterController += AnimationManager_OnDisableCharacterController;
+        GameInput.OnSprintAction += GameInput_OnSprintAction;
+        GameInput.OnJumpAction += GameInput_OnJumpAction;
+        gameInput.OnStopHangingAction += GameInput_OnStopHangingAction;
         Cursor.lockState = CursorLockMode.Locked;
-        gameInput.OnSprintAction += GameInput_OnSprintAction;
-        gameInput.OnJumpAction += GameInput_OnJumpAction;
 
-        // reset our timeouts on start
-        jumpTimeoutDelta = JumpTimeout;
+        idleState = new IdleState(this);
+        movementState = new MovementState(this);
+        runState = new RunState(this);
+        jumpState = new JumpState(this);
+        freeFallState = new FreeFallState(this);
+        hangState = new HangState(this);
+        vaultState = new VaultState(this);
+        hangJumpState = new HangJumpState(this);
+        ChangeState(movementState);
+        //// reset our timeouts on start
+        //jumpTimeoutDelta = JumpTimeout;
         fallTimeoutDelta = FallTimeout;
+
     }
+
+    private void GameInput_OnStopHangingAction(object sender, GameInput.OnStopHangingActionEventArgs e)
+    {
+        stopHanging = e.isPressing;
+
+        if (stopHanging)
+        {
+            stopHangingRemainingTime = stopScanTimer;
+        }
+
+        if (currentState == hangState)
+        {
+            ChangeState(movementState);
+        }
+
+
+    }
+
     private void GameInput_OnJumpAction(object sender, EventArgs e)
     {
-        switch (environmentScan.relevantAction)
+        if (isHanging == false)
         {
-            case RelevantAction.Edge:
-                targetPosition = environmentScan.GetTargetHangPosition();
-                isParkour = true;
-                OnJumpAction?.Invoke(this, new OnJumpActionEventArgs
-                {
-                    relevantAction = environmentScan.relevantAction,
-                });
-                break;
-            case RelevantAction.Vault:
-                OnJumpAction?.Invoke(this, new OnJumpActionEventArgs
-                {
-                    relevantAction = environmentScan.relevantAction,
-                });
-                break;
-            case RelevantAction.StepUp:
-                break;
-            case RelevantAction.None:
-                //if (isJumping) return;
-                isJumping = true;
-                CalculateJumpHeight();
-                OnJumpAction?.Invoke(this, new OnJumpActionEventArgs
-                {
-                    relevantAction = environmentScan.relevantAction,
-                    isJumping = isJumping
-                });
-                break;
-            default:
-                break;
+            switch (_environmentScan.relevantAction)
+            {
+                case RelevantAction.Vault:
+                    ChangeState(vaultState);
+                    break;
+
+                case RelevantAction.StepUp:
+                    break;
+
+                case RelevantAction.None:
+                    if (currentState != movementState) return;
+                    ChangeState(jumpState);
+                    break;
+
+                default:
+                    break;
+            }
         }
+        //else
+        //{
+        //    //isHangJumping = true;
+        //    ChangeState(hangJumpState);
+        //}
+
     }
     private void Update()
     {
-        Move();
-        Jump();
-        ApplyGravity();
-        MoveTargetHangPosition();
-    }
-
-    private void MoveTargetHangPosition()
-    {
-        if (isParkour)
+        if (currentState != null)
         {
-            if (transform.position != targetPosition)
+            currentState.OnUpdate();
+        }
+        //Move();
+       // Jump();
+        ApplyGravity();
+        //MoveTargetHangPosition();
+
+        if (!GroundCheck())
+        {
+            // reset the jump timeout timer
+            jumpTimeoutDelta = JumpTimeout;
+
+            // fall timeout
+            if (fallTimeoutDelta >= 0.0f)
             {
-                //Debug.Log("MOVE TARGET");
-                controller.Move((targetPosition - transform.position).normalized  * Time.deltaTime);
+                fallTimeoutDelta -= Time.deltaTime;
+            }
+            else
+            {
+                InvokeOnFreeFallAction(true);
+            }
+
+            // if we are not grounded, do not jump
+            IsJumping = false;
+            InvokeOnJumpAction(IsJumping, RelevantAction.None);
+
+        }
+        else
+        {
+            // reset the jump timeout timer
+            jumpTimeoutDelta = JumpTimeout;
+
+            InvokeOnFreeFallAction(false);
+        }
+
+        if (!IsHanging)
+        {
+            // reset the jump timeout timer
+            hangJumpTimeoutDelta = hangJumpTimeout;
+
+            // fall timeout
+            if (fallTimeoutDelta >= 0.0f)
+            {
+                fallTimeoutDelta -= Time.deltaTime;
+            }
+            //else
+            //{
+            //    InvokeOnFreeFallAction(true);
+            //}
+
+            // if we are not hanging, do not hang jump
+            IsHangJumping = false;
+
+        }
+        else
+        {
+            // reset the jump timeout timer
+            hangJumpTimeoutDelta = hangJumpTimeout;
+        }
+
+
+        if (!GroundCheck() && !IsHanging && !stopHanging)
+        {
+            if (stopHangingRemainingTime >= 0)
+            {
+                stopHangingRemainingTime -= Time.deltaTime;
+
+                return;
+            }
+            switch (_environmentScan.relevantAction)
+            {
+                case RelevantAction.Edge:
+
+                    ChangeState(hangState);
+                    break;
+
+                default:
+                    break;
             }
         }
     }
+    public void ChangeState(State newState)
+    {
+        if (currentState != null)
+        {
+            currentState.OnExit();
+            previousStateText.text = "Previous State: " + currentState.ToString();
+        }
+        currentState = newState;
+        currentState.OnStart();
+        currentStateText.text = "Current State: " + currentState.ToString();
+    }
+
     private void Move()
     {
         if (isParkour) return;
         // set target speed based on move speed, sprint speed and if sprint is pressed
         float targetSpeed = isSprinting ? sprintSpeed : moveSpeed;
 
-        Vector2 movementVector = gameInput.GetMovementVectorNormalized();
+        Vector2 movementVector = GameInput.GetMovementVectorNormalized();
 
         // If there is no input set the targetspeed to 0.
         if (movementVector == Vector2.zero)
@@ -166,11 +338,11 @@ public class ThirdPersonCharacterController : MonoBehaviour
         }
 
         // a reference to the players current horizontal velocity
-        float currentHorizontalSpeed = new Vector3(controller.velocity.x, 0.0f, controller.velocity.z).magnitude;
+        float currentHorizontalSpeed = new Vector3(CharacterController.velocity.x, 0.0f, CharacterController.velocity.z).magnitude;
 
         float speedOffset = 0.1f;
 
-        float inputMagnitude = gameInput.GetMoveInputMagnitude();
+        float inputMagnitude = GameInput.GetMoveInputMagnitude();
 
         // accelerate or decelerate to target speed
         if (currentHorizontalSpeed < targetSpeed - speedOffset ||
@@ -197,10 +369,10 @@ public class ThirdPersonCharacterController : MonoBehaviour
 
         // note: Vector2's != operator uses approximation so is not floating point error prone, and is cheaper than magnitude
        
-        if (controller.enabled == true)
+        if (CharacterController.enabled == true)
         {
             // if there is a move input rotate player when the player is moving
-            if (gameInput.GetMovementVectorNormalized() != Vector2.zero)
+            if (GameInput.GetMovementVectorNormalized() != Vector2.zero)
             {
                 _targetRotation = Mathf.Atan2(inputDirection.x, inputDirection.z) * Mathf.Rad2Deg +
                                   Camera.main.transform.eulerAngles.y;
@@ -215,7 +387,7 @@ public class ThirdPersonCharacterController : MonoBehaviour
         Vector3 targetDirection = Quaternion.Euler(0.0f, _targetRotation, 0.0f) * Vector3.forward;
 
         // move the player
-        controller.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
+        CharacterController.Move(targetDirection.normalized * (_speed * Time.deltaTime) +
                          new Vector3(0.0f, VerticalVelocity, 0.0f) * Time.deltaTime);
 
         OnSpeedChangeAction?.Invoke(this, new OnSpeedChangeActionEventArgs
@@ -230,20 +402,19 @@ public class ThirdPersonCharacterController : MonoBehaviour
 
     }
 
-
     // If there is an obstacle above the player, update jumpHeight
-    private void CalculateJumpHeight()
+    public void CalculateJumpHeight()
     {
-        JumpHeight = 1.2f;
+        jumpHeight = 1f;
         RaycastHit hit;
-        if (Physics.Raycast(transform.position + new Vector3(0, 1.77f, 0), Vector3.up, out hit, JumpHeight)) 
+        if (Physics.Raycast(transform.position + new Vector3(0, 1.77f, 0), Vector3.up, out hit, jumpHeight)) 
         {
             Debug.DrawLine(transform.position + new Vector3(0, 1.77f, 0), hit.point);
             float distance = Vector3.Distance(transform.position + new Vector3(0, 1.77f, 0), hit.point);
 
-            if (distance < JumpHeight)
+            if (distance < jumpHeight)
             {
-                JumpHeight -= distance ;
+                jumpHeight -= distance ;
             }
         }
     }
@@ -252,7 +423,7 @@ public class ThirdPersonCharacterController : MonoBehaviour
         if (isGrounded)
         {
             // reset the fall timeout timer
-            fallTimeoutDelta = FallTimeout;
+            fallTimeoutDelta = fallTimeout;
             //OnJumpAction?.Invoke(this, new OnJumpActionEventArgs {
             //IsJumping = false;
             //});
@@ -269,7 +440,7 @@ public class ThirdPersonCharacterController : MonoBehaviour
             if (IsJumping && jumpTimeoutDelta <= 0.0f)
             {
                 // the square root of H * -2 * G = how much velocity needed to reach desired height
-                VerticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
+                VerticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
                 //OnJumpAction?.Invoke(this, new OnJumpActionEventArgs
                 //{
                 //    isJumping = true
@@ -284,7 +455,7 @@ public class ThirdPersonCharacterController : MonoBehaviour
         else
         {
             // reset the jump timeout timer
-            jumpTimeoutDelta = JumpTimeout;
+            jumpTimeoutDelta = jumpTimeout;
 
             // fall timeout
             if (fallTimeoutDelta >= 0.0f)
@@ -317,17 +488,28 @@ public class ThirdPersonCharacterController : MonoBehaviour
 
     private void ApplyGravity()
     {
-        if (isParkour) return;
-        // apply gravity over time if under terminal (multiply by delta time twice to linearly speed up over time)
-        if (VerticalVelocity < terminalVelocity)
+        // stop our velocity dropping infinitely when grounded
+        if (GroundCheck() && VerticalVelocity < 0.0f)
         {
-            VerticalVelocity += Gravity * Time.deltaTime;
+            VerticalVelocity = -2f;
+        }
+        else
+        {
+            if (currentState != hangState)
+            {
+                // apply gravity over time if under terminal (multiply by delta time twice to linearly speed up over time)
+                if (VerticalVelocity < TerminalVelocity)
+                {
+                    VerticalVelocity += gravity * Time.deltaTime;
+                }
+            }
+
         }
     }
     public bool GroundCheck()
     {
         isGrounded = Physics.CheckSphere(transform.position + groundOffset, groundRadius, groundLayer);
-
+        //if (IsGrounded) IsHanging = false;
         OnGroundedChangeAction?.Invoke(this, new OnGrondedChangeActionEventArgs
         {
             isGrounded = isGrounded
@@ -346,17 +528,74 @@ public class ThirdPersonCharacterController : MonoBehaviour
 
     private void AnimationManager_OnDisableCharacterController(object sender, EventArgs e)
     {
-        controller.enabled = false;
+        CharacterController.enabled = false;
     }
 
     private void AnimationManager_OnEnableCharacterController(object sender, EventArgs e)
     {
-        controller.enabled = true;
+        CharacterController.enabled = true;
     }
 
     private void GameInput_OnSprintAction(object sender, GameInput.OnSprintActionEventArgs e)
     {
         isSprinting = e.isSprint;
+    }
+
+    public void InvokeOnFreeFallAction(bool isFreeFalling)
+    {
+        OnFreeFallAction?.Invoke(this, new OnFreeFallEventArgs
+        {
+            freeFall = isFreeFalling
+        });
+    }
+
+    public void InvokeOnJumpAction(bool isJumping, RelevantAction relevantAction)
+    {
+        OnJumpAction?.Invoke(this, new OnJumpActionEventArgs
+        {
+            relevantAction = relevantAction,
+            isJumping = isJumping
+        });
+    }    
+    public void InvokeOnHangAction(bool isHanging)
+    {
+        OnHangAction?.Invoke(this, new OnHangActionEventArgs
+        {
+            isHanging  = isHanging
+        });
+    }
+
+    public void InvokeOnHangIdleAction(bool isHanging)
+    {
+        OnHangIdleAction?.Invoke(this, new OnHangActionEventArgs
+        {
+            isHanging = isHanging
+        });
+    }
+
+    public void InvokeOnSpeedChangeAction(float speed)
+    {
+        OnSpeedChangeAction?.Invoke(this, new OnSpeedChangeActionEventArgs
+        {
+            speed = _speed
+        });
+
+    }
+
+    public void InvokeOnMotionBlendChangeAction(float inputMagnitude)
+    {
+        OnMotionBlendChangeAction?.Invoke(this, new OnMotionBlendChangeActionEventArgs
+        {
+            animationBlend = inputMagnitude
+        });
+    }
+
+    public void InvokeOnHangJumpAction(Vector2 movementVector)
+    {
+        OnHangJumpAction?.Invoke(this, new OnHangJumpActionEventArgs
+        {
+            movementVector = movementVector
+        });
     }
 
 

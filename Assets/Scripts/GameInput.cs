@@ -17,10 +17,12 @@ public class GameInput : MonoBehaviour
     public event EventHandler OnVaultAction;
     public event EventHandler OnSlideAction;
     public event EventHandler OnHangAction;
+    public event EventHandler<OnStopHangingActionEventArgs> OnStopHangingAction;
     public event EventHandler<OnSprintActionEventArgs> OnSprintAction;
     public event EventHandler OnMousePosition;
     public event EventHandler OnInteractAction;
     public class OnSprintActionEventArgs : EventArgs{ public bool isSprint; }
+    public class OnStopHangingActionEventArgs : EventArgs { public bool isPressing; }
 
     // UI
     public class OnItemDropActionEventArgs : EventArgs { public Vector2 mousePosition; }
@@ -41,7 +43,16 @@ public class GameInput : MonoBehaviour
         playerInputActions.Player.Slide.performed += Slide_performed;
         playerInputActions.Player.ToolTip.performed += ToolTip_performed;
         playerInputActions.Player.Hang.performed += Hang_performed;
+        playerInputActions.Player.StopHanging.performed += StopHanging_performed;
 
+    }
+
+    private void StopHanging_performed(InputAction.CallbackContext obj)
+    {
+        OnStopHangingAction?.Invoke(this, new OnStopHangingActionEventArgs
+        {
+            isPressing = playerInputActions.Player.StopHanging.IsPressed()
+        });
     }
 
     private void Hang_performed(InputAction.CallbackContext obj)
