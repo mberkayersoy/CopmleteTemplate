@@ -14,20 +14,17 @@ public class GameInput : MonoBehaviour
     public event EventHandler OnPlayerMovementAction;
     public event EventHandler OnJumpAction;
     public event EventHandler OnMousePositionDeltaAction;
-    public event EventHandler OnRollAction;
-    public event EventHandler OnAimAction;
+    public event EventHandler OnVaultAction;
     public event EventHandler OnSlideAction;
+    public event EventHandler OnHangAction;
+    public event EventHandler<OnStopHangingActionEventArgs> OnStopHangingAction;
     public event EventHandler<OnSprintActionEventArgs> OnSprintAction;
     public event EventHandler OnMousePosition;
     public event EventHandler OnInteractAction;
     public class OnSprintActionEventArgs : EventArgs{ public bool isSprint; }
+    public class OnStopHangingActionEventArgs : EventArgs { public bool isPressing; }
 
     // UI
-    private bool isInventoryActive;
-    public event EventHandler<OnUIInventoryActionEventArgs> OnUIInventoryAction;
-    public event EventHandler<OnItemDropActionEventArgs> OnItemDropAction;
-
-    public class OnUIInventoryActionEventArgs : EventArgs { public bool isActive; }
     public class OnItemDropActionEventArgs : EventArgs { public Vector2 mousePosition; }
     private void Awake()
     {
@@ -42,36 +39,25 @@ public class GameInput : MonoBehaviour
         playerInputActions.Player.Movement.performed += Movement_performed;
         playerInputActions.Player.Sprint.performed += Sprint_performed;
         playerInputActions.Player.MouseDeltaPosition.performed += MouseDeltaPosition_performed;
-        playerInputActions.Player.Roll.performed += Roll_performed;
-        playerInputActions.Player.Aim.performed += Aim_performed;
+        playerInputActions.Player.Roll.performed += Vault_performed;
         playerInputActions.Player.Slide.performed += Slide_performed;
         playerInputActions.Player.ToolTip.performed += ToolTip_performed;
-        playerInputActions.Player.Interact.performed += Interact_performed;
+        playerInputActions.Player.Hang.performed += Hang_performed;
+        playerInputActions.Player.StopHanging.performed += StopHanging_performed;
 
-        playerInputActions.UI.Inventory.performed += Inventory_performed;
-        playerInputActions.UI.DropItem.performed += DropItem_performed;
     }
 
-    private void DropItem_performed(InputAction.CallbackContext obj)
+    private void StopHanging_performed(InputAction.CallbackContext obj)
     {
-        OnItemDropAction?.Invoke(this, new OnItemDropActionEventArgs
+        OnStopHangingAction?.Invoke(this, new OnStopHangingActionEventArgs
         {
-            mousePosition = GetMousePosition()
+            isPressing = playerInputActions.Player.StopHanging.IsPressed()
         });
     }
 
-    private void Inventory_performed(InputAction.CallbackContext obj)
+    private void Hang_performed(InputAction.CallbackContext obj)
     {
-        isInventoryActive = !isInventoryActive;
-        OnUIInventoryAction?.Invoke(this, new OnUIInventoryActionEventArgs
-        {
-            isActive = playerInputActions.UI.Inventory.IsPressed()
-        });
-    }
-
-    private void Interact_performed(InputAction.CallbackContext obj)
-    {
-        OnInteractAction?.Invoke(this, EventArgs.Empty);
+        OnHangAction?.Invoke(this, EventArgs.Empty);
     }
 
     private void ToolTip_performed(InputAction.CallbackContext obj)
@@ -84,17 +70,10 @@ public class GameInput : MonoBehaviour
         OnSlideAction?.Invoke(this, EventArgs.Empty);
     }
 
-    private void Aim_performed(InputAction.CallbackContext obj)
-    {
-        if (!isInventoryActive)
-        {
-            OnAimAction?.Invoke(this, EventArgs.Empty);
-        }
-    }
 
-    private void Roll_performed(InputAction.CallbackContext obj)
+    private void Vault_performed(InputAction.CallbackContext obj)
     {
-        OnRollAction?.Invoke(this, EventArgs.Empty);
+        OnVaultAction?.Invoke(this, EventArgs.Empty);
     }
 
     private void MouseDeltaPosition_performed(InputAction.CallbackContext obj)

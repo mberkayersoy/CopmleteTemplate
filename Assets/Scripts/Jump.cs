@@ -5,20 +5,19 @@ using System;
 
 public class Jump : MonoBehaviour
 {
-    private GameInput gameInput;
-    private PlayerMovement playerMovement;
+    private ThirdPersonCharacterController playerController;
 
     // EVENTS
-    public event EventHandler<OnJumpActionEventArgs> OnJumpAction;
     public event EventHandler<OnFreeFallEventArgs> OnFreeFallAction;
 
     // EVENT ARGS
-    public class OnJumpActionEventArgs : EventArgs{ public bool isJumping; }
     public class OnFreeFallEventArgs : EventArgs { public bool freeFall; }
 
+
     // JUMP VARIABLES
-    public bool IsJumping { get; private set; }
-    public float VerticalVelocity { get; private set; }
+    public bool IsJumping { get; set; }
+    public float VerticalVelocity { get => verticalVelocity; private set => verticalVelocity = value; }
+
     //Time required to pass before entering the fall state. Useful for walking down stairs
     [SerializeField] private float FallTimeout = 0.15f;
     //The height the player can jump
@@ -27,56 +26,63 @@ public class Jump : MonoBehaviour
     [SerializeField] private float Gravity = -15.0f;
     //Time required to pass before being able to jump again. Set to 0f to instantly jump again
     [SerializeField] private float JumpTimeout = 0.50f;
+
     private float terminalVelocity = 53.0f;
+    [SerializeField] private float verticalVelocity;
     // timeout deltatime
     private float jumpTimeoutDelta;
     private float fallTimeoutDelta;
 
+
     private void Awake()
     {
-        playerMovement = GetComponent<PlayerMovement>();
+        playerController = GetComponent<ThirdPersonCharacterController>();
     }
 
     private void Start()
     {
-        gameInput = GameInput.Instance;
-
-        gameInput.OnJumpAction += GameInput_OnJumpAction;
-
         // reset our timeouts on start
         jumpTimeoutDelta = JumpTimeout;
         fallTimeoutDelta = FallTimeout;
+        playerController.OnJumpAction += PlayerController_OnJumpAction;
+    }
+
+    private void PlayerController_OnJumpAction(object sender, ThirdPersonCharacterController.OnJumpActionEventArgs e)
+    {
+        switch (e.relevantAction)
+        {
+            case RelevantAction.Edge:
+                break;
+            case RelevantAction.Vault:
+                break;
+            case RelevantAction.StepUp:
+                break;
+            case RelevantAction.None:
+                IsJumping = true;
+                break;
+            default:
+                break;
+        }
     }
 
     void Update()
     {
         JumpAndGravity();
     }
-    private void GameInput_OnJumpAction(object sender, System.EventArgs e)
-    {
-        if (playerMovement.GetIsRolling() || playerMovement.GetIsSliding()) return;
-        if (playerMovement.GroundCheck())
-        {
-            IsJumping = true;
-        }
-    }
 
     private void JumpAndGravity()
     {
-        if (playerMovement.GetIsRolling() || playerMovement.GetIsSliding()) return;
-
-        if (playerMovement.GroundCheck())
+        if (playerController.GroundCheck())
         {
             // reset the fall timeout timer
             fallTimeoutDelta = FallTimeout;
-
-            OnJumpAction?.Invoke(this, new OnJumpActionEventArgs {
-                isJumping = false
-            });
+            //OnJumpAction?.Invoke(this, new OnJumpActionEventArgs {
+            //IsJumping = false;
+            //});
             OnFreeFallAction?.Invoke(this, new OnFreeFallEventArgs
             {
                 freeFall = false
-            }); ;
+            });
             // stop our velocity dropping infinitely when grounded
             if (VerticalVelocity < 0.0f)
             {
@@ -87,10 +93,10 @@ public class Jump : MonoBehaviour
             {
                 // the square root of H * -2 * G = how much velocity needed to reach desired height
                 VerticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
-                OnJumpAction?.Invoke(this, new OnJumpActionEventArgs
-                {
-                    isJumping = true
-                });
+                //OnJumpAction?.Invoke(this, new OnJumpActionEventArgs
+                //{
+                //    isJumping = true
+                //});
             }
             // jump timeout
             if (jumpTimeoutDelta >= 0.0f)

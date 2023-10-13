@@ -78,12 +78,30 @@
                     "initialStateCheck": true
                 },
                 {
-                    "name": "Interact",
+                    "name": "Shoot",
                     "type": "Button",
-                    "id": "3d5c3e0a-9e54-400e-b114-4c0f66b5bac0",
+                    "id": "a2dbeac5-e875-4117-8054-d2403c81269d",
                     "expectedControlType": "Button",
                     "processors": "",
-                    "interactions": "Hold",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Hang",
+                    "type": "Button",
+                    "id": "728ffb80-0cf9-49e3-9a64-20269e8a9127",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "StopHanging",
+                    "type": "PassThrough",
+                    "id": "f34bae37-5ee4-4459-8491-7a4f8e06f524",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
                     "initialStateCheck": false
                 }
             ],
@@ -222,12 +240,34 @@
                 },
                 {
                     "name": "",
-                    "id": "7ab637cc-3a3b-493f-beae-2cc3fe01fe5b",
-                    "path": "<Keyboard>/e",
+                    "id": "e7815ff4-e6e4-43cf-bfc9-d45c3d6dc7c0",
+                    "path": "<Mouse>/leftButton",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Interact",
+                    "action": "Shoot",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "608039d5-d5a2-4daa-bb79-ba65a979ece7",
+                    "path": "<Keyboard>/r",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Hang",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "6f082bfd-a2ca-4386-9bf5-059f43fb6ca7",
+                    "path": "<Keyboard>/e",
+                    "interactions": "Press(behavior=2)",
+                    "processors": "",
+                    "groups": "",
+                    "action": "StopHanging",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

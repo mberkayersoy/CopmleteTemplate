@@ -10,7 +10,6 @@ public class PlayerPickupController : MonoBehaviour
 
     private CollectibleItem selectedCollectibleItem;
     private bool canTryPickUp;
-    [SerializeField] private PlayerInventoryManager playerInventoryManager;
 
     private void Start()
     {
@@ -74,8 +73,6 @@ public class PlayerPickupController : MonoBehaviour
     private void TryPickup()
     {
         if (selectedCollectibleItem == null) return;
-
-        playerInventoryManager.GetInventory().AddItem(selectedCollectibleItem.GetItem());
    
         //Debug.Log(selectedCollectibleItem.GetItem().ItemName + " taken");
     }

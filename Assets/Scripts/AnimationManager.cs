@@ -5,21 +5,17 @@ using UnityEngine;
 
 public class AnimationManager : MonoBehaviour
 {
-    private enum State
-    {
-        Knife,
-        Bow,
-    }
-
     private GameInput gameInput;
-    [SerializeField] private PlayerMovement playerMovement;
-    [SerializeField] private Jump jump;
+    [SerializeField] private ThirdPersonCharacterController playerController;
     [SerializeField] private ThirdPersonCameraController cameraController;
+    [SerializeField] private EnvironmentScan environmentScan;
 
     [SerializeField] private Animator animator;
-    [SerializeField] private AnimatorOverrideController[] overrideControllers;
 
-    //    public event EventHandler OnRollComplete;
+    public event EventHandler OnDisableCharacterController;
+    public event EventHandler OnEnableCharacterController;
+
+    // public event EventHandler OnRollComplete;
 
     // Animation IDs
     private int animIDSpeed;
@@ -27,55 +23,109 @@ public class AnimationManager : MonoBehaviour
     private int animIDJump;
     private int animIDFreeFall;
     private int animIDMotionSpeed;
-    private int animIDRoll;
-    private int animIDSlide;
-    private int animIDAiming;
-
+    private int animIDMovementToHang;
+    private int animIDHangIdle;
+    private int animIDVault;
+    private int animIDHorizontal;
+    private int animIDVertical;
+    private int animIDHassWall;
     private void Awake()
     {
         AssignAnimationIDs();
-        cameraController = GetComponent<ThirdPersonCameraController>();
     }
 
     private void Start()
     {
         gameInput = GameInput.Instance;
-
-
-        playerMovement.OnSlideAction += PlayerMovement_OnSlideAction;
-        playerMovement.OnRollAction += PlayerMovement_OnRollAction; ;
-        playerMovement.OnSpeedChangeAction += PlayerMovement_OnSpeedChangeAction;
-        playerMovement.OnMotionBlendChangeAction += PlayerMovement_OnMotionBlendChangeAction;
-        playerMovement.OnGrondedChangeAction += PlayerMovement_OnGrondedChangeAction;
-        cameraController.OnAimStateChange += CameraController_OnAimStateChange;
-        jump.OnFreeFallAction += Jump_OnFreeFallAction;
-        jump.OnJumpAction += Jump_OnJumpAction;
-        
-
+        playerController.OnSpeedChangeAction += PlayerController_OnSpeedChangeAction;
+        playerController.OnMotionBlendChangeAction += PlayerController_OnMotionBlendChangeAction;
+        playerController.OnGroundedChangeAction += PlayerController_OnGroundedChangeAction;
+        playerController.OnFreeFallAction += PlayerController_OnFreeFallAction;
+        playerController.OnJumpAction += PlayerController_OnSpaceKeyAction;
+        playerController.OnHangAction += PlayerController_OnHangAction;
+        playerController.OnHangIdleAction += PlayerController_OnHangIdleAction;
+        playerController.OnHangMovementAction += PlayerController_OnHangMovementAction;
+        playerController.OnHasWallChangeAction += PlayerController_OnHasWallChangeAction;
+        //gameInput.OnVaultAction += GameInput_OnVaultAction;
+        //gameInput.OnHangAction += GameInput_OnHangAction;
     }
 
-    private void CameraController_OnAimStateChange(object sender, ThirdPersonCameraController.OnAimStateChangeEventArgs e)
+    private void PlayerController_OnHasWallChangeAction(object sender, ThirdPersonCharacterController.OnHasWallChangeActionEventArgs e)
     {
-        animator.SetBool(animIDAiming, e.isAiming);
+        animator.SetBool(animIDHassWall, e.hasWall);
+    }
+
+    private void PlayerController_OnHangMovementAction(object sender, ThirdPersonCharacterController.OnHangMovementActionEventArgs e)
+    {
+        animator.SetFloat(animIDHorizontal, e.movementVector.x * Time.smoothDeltaTime);
+        animator.SetFloat(animIDVertical, e.movementVector.y * Time.smoothDeltaTime);
     }
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Alpha1))
+        //SetMovementVectorParams();
+    }
+    private void SetMovementVectorParams()
+    {
+        Vector2 movementVector = gameInput.GetMovementVectorNormalized();
+
+        animator.SetFloat(animIDHorizontal, movementVector.x * Time.smoothDeltaTime);
+        animator.SetFloat(animIDVertical, movementVector.y * Time.smoothDeltaTime);
+    }
+
+    private void PlayerController_OnHangIdleAction(object sender, ThirdPersonCharacterController.OnHangActionEventArgs e)
+    {
+        animator.SetBool(animIDHangIdle, e.isHanging);
+    }
+
+    private void PlayerController_OnHangAction(object sender, ThirdPersonCharacterController.OnHangActionEventArgs e)
+    {
+        animator.SetBool(animIDMovementToHang, e.isHanging);
+    }
+
+    private void PlayerController_OnSpaceKeyAction(object sender, ThirdPersonCharacterController.OnJumpActionEventArgs e)
+    {
+        switch (e.relevantAction)
         {
-            SetAnimator(State.Knife);
+            case RelevantAction.Edge:
+                animator.SetBool(animIDMovementToHang, true);
+                break;
+            case RelevantAction.Vault:
+                animator.SetBool(animIDVault, true);
+                break;
+            case RelevantAction.StepUp:
+                break;
+            case RelevantAction.None:
+                animator.SetBool(animIDJump, e.isJumping);
+                break;
+            default:
+                break;
         }
     }
-
-
-    private void PlayerMovement_OnSlideAction(object sender, PlayerMovement.OnSlideActionEventArgs e)
+    private void PlayerController_OnFreeFallAction(object sender, ThirdPersonCharacterController.OnFreeFallEventArgs e)
     {
-        animator.SetBool(animIDSlide, e.isSliding);
+        animator.SetBool(animIDFreeFall, e.freeFall);
     }
 
-    private void PlayerMovement_OnRollAction(object sender, PlayerMovement.OnRollActionEventArgs e)
+    private void VaultDone(AnimationEvent animationEvent)
     {
-        animator.SetBool(animIDRoll, e.isRolling);
+        OnEnableCharacterController?.Invoke(this, EventArgs.Empty);
+        animator.SetBool(animIDVault, false);
+    }
+
+    private void PlayerController_OnGroundedChangeAction(object sender, ThirdPersonCharacterController.OnGrondedChangeActionEventArgs e)
+    {
+        animator.SetBool(animIDGrounded, e.isGrounded);
+    }
+
+    private void PlayerController_OnMotionBlendChangeAction(object sender, ThirdPersonCharacterController.OnMotionBlendChangeActionEventArgs e)
+    {
+        animator.SetFloat(animIDMotionSpeed, e.animationBlend);
+    }
+
+    private void PlayerController_OnSpeedChangeAction(object sender, ThirdPersonCharacterController.OnSpeedChangeActionEventArgs e)
+    {
+        animator.SetFloat(animIDSpeed, e.speed);
     }
 
     private void ActivateRootMotion(AnimationEvent animationEvent)
@@ -88,37 +138,6 @@ public class AnimationManager : MonoBehaviour
         Debug.Log("DeActivateRootMotion(): " + animator.hasRootMotion);
     }
 
-    private void Jump_OnJumpAction(object sender, Jump.OnJumpActionEventArgs e)
-    {
-        animator.SetBool(animIDJump, e.isJumping);
-    }
-
-    private void Jump_OnFreeFallAction(object sender, Jump.OnFreeFallEventArgs e)
-    {
-        animator.SetBool(animIDFreeFall, e.freeFall);
-    }
-
-    private void PlayerMovement_OnGrondedChangeAction(object sender, PlayerMovement.OnGrondedChangeActionEventArgs e)
-    {
-        animator.SetBool(animIDGrounded, e.isGrounded);
-    }
-
-    private void PlayerMovement_OnMotionBlendChangeAction(object sender, PlayerMovement.OnMotionBlendChangeActionEventArgs e)
-    {
-        animator.SetFloat(animIDMotionSpeed, e.animationBlend);
-    }
-
-    private void PlayerMovement_OnSpeedChangeAction(object sender, PlayerMovement.OnSpeedChangeActionEventArgs e)
-    {
-        animator.SetFloat(animIDSpeed, e.speed);
-    }
-
-    private void SetAnimator(State animatorState)
-    {
-        //animator.CrossFade(animatorState.ToString(), 1f);
-        animator.runtimeAnimatorController = overrideControllers[(int)animatorState];
-    }
-
     private void AssignAnimationIDs()
     {
         animIDSpeed = Animator.StringToHash("Speed");
@@ -126,9 +145,30 @@ public class AnimationManager : MonoBehaviour
         animIDJump = Animator.StringToHash("Jump");
         animIDFreeFall = Animator.StringToHash("FreeFall");
         animIDMotionSpeed = Animator.StringToHash("MotionSpeed");
-        animIDRoll = Animator.StringToHash("Roll");
-        animIDSlide = Animator.StringToHash("Slide");
-        animIDAiming = Animator.StringToHash("Aim");
+        animIDMovementToHang = Animator.StringToHash("MovementToHang");
+        animIDHangIdle = Animator.StringToHash("HangIdle");
+        animIDVault = Animator.StringToHash("Vault");
+        animIDHorizontal = Animator.StringToHash("Horizontal");
+        animIDVertical = Animator.StringToHash("Vertical");
+        animIDHassWall = Animator.StringToHash("HasWall");
+    }
+    private void OnFootstep(AnimationEvent animationEvent)
+    {
+        //if (animationEvent.animatorClipInfo.weight > 0.5f)
+        //{
+        //    if (FootstepAudioClips.Length > 0)
+        //    {
+        //        var index = UnityEngine.Random.Range(0, FootstepAudioClips.Length);
+        //        AudioSource.PlayClipAtPoint(FootstepAudioClips[index], transform.TransformPoint(controller.center), FootstepAudioVolume);
+        //    }
+        //}
     }
 
+    private void OnLand(AnimationEvent animationEvent)
+    {
+        //if (animationEvent.animatorClipInfo.weight > 0.5f)
+        //{
+        //    AudioSource.PlayClipAtPoint(LandingAudioClip, transform.TransformPoint(controller.center), FootstepAudioVolume);
+        //}
+    }
 }
