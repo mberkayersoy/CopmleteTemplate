@@ -10,7 +10,7 @@ public class HangJumpState : State
     private float _rotationVelocity; // SmoothDampAngle function ref
     private float jumpTimeoutDelta; // timeout deltatime
     private Vector2 jumpDirection;
-    private Vector2 backJumpDirection;
+    private Vector3 backJumpDirection;
     private bool isBackJumping;
     public override void OnStart()
     {
@@ -23,9 +23,9 @@ public class HangJumpState : State
 
         if (jumpDirection == new Vector2(0,-1))
         {
-            playerController.RotateOnMove = false;
+            playerController.RotateOnMove = true;
             isBackJumping = true;
-            backJumpDirection = playerController.transform.forward;
+            backJumpDirection = -playerController.transform.forward;
         }
         else
         {
@@ -63,23 +63,25 @@ public class HangJumpState : State
             // move the player
             if (!isBackJumping)
             {
-                playerController.CharacterController.Move(playerController.transform.TransformDirection(new Vector3(jumpDirection.x * 2, jumpDirection.y, 0)) * (playerController.HangJumpHeight * Time.deltaTime) +
-                    new Vector3(0.0f, playerController.VerticalVelocity, 0.0f) * Time.deltaTime);
+
+                playerController.CharacterController.Move(playerController.transform.TransformDirection( new Vector3(jumpDirection.x * 2, jumpDirection.y, 0)) * (playerController.HangJumpHeight * Time.deltaTime) +
+                        new Vector3(0.0f, playerController.VerticalVelocity, 0.0f) * Time.deltaTime);
+
+                if (playerController.EnvironmentScan.highestLedge.hitInfo.distance == 0)
+                {
+                    playerController.RotateOnMove = true;
+                }
+                // playerController.CharacterController.Move(playerController.transform.TransformDirection(new Vector3(0, 0, playerController.GameInput.GetMovementVectorNormalized().y * 0.2f * Time.deltaTime)));
             }
             else
             {
-                playerController.CharacterController.Move(-playerController.transform.TransformDirection(Vector3.forward * 2) * (playerController.HangJumpHeight * Time.deltaTime) +
-                  new Vector3(0.0f, playerController.VerticalVelocity, 0.0f) * Time.deltaTime);
+                playerController.CharacterController.Move(backJumpDirection * 2 * (playerController.HangJumpHeight * Time.deltaTime) +
+                    new Vector3(0.0f, playerController.VerticalVelocity, 0.0f) * Time.deltaTime);
             }
         }
-        //Vector2 movementVector = playerController.GameInput.GetMovementVectorNormalized();
-        //Vector3 targetDirection = Quaternion.Euler(0.0f, playerController.TargetRotation, 0.0f) * Vector3.forward;
-        //Vector3 targetDirection2 = new Vector3(movementVector.x, movementVector.y, 0);
 
         float inputMagnitude = playerController.GameInput.GetMoveInputMagnitude();
         playerController.InvokeOnMotionBlendChangeAction(inputMagnitude * Time.deltaTime);
-
-
     }
 
     private void CameraRotation()
@@ -102,8 +104,21 @@ public class HangJumpState : State
 
                 if (playerController.RotateOnMove)
                 {
-                    // rotate to face input direction relative to camera position
-                    playerController.transform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
+                    //// rotate to face input direction relative to camera position
+                    //playerController.transform.rotation = Quaternion.Slerp(playerController.transform.rotation, 
+                    //    Quaternion.Euler(0.0f, rotation, 0.0f), 5f * Time.deltaTime) ;
+                
+                    if (isBackJumping)
+                    {
+                        playerController.transform.rotation = Quaternion.Euler(0.0f, rotation, 0.0f);
+                    }
+                    else
+                    {
+                        // rotate to face input direction relative to camera position
+                        playerController.transform.rotation = Quaternion.Slerp(playerController.transform.rotation,
+                            Quaternion.Euler(0.0f, rotation, 0.0f), 5 * Time.deltaTime);
+                    }
+                    
                 }
             }
         }

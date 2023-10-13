@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class HangState : State
 {
-    public float fixRotationSmoothSpeed = 2.0f;
+    public float fixRotationSmoothSpeed = 4f;
     private bool isArrived;
     private float hangingMoveSpeed = 0.5f;
     private float hangJumpTimeOut = 0.5f;
@@ -13,14 +13,19 @@ public class HangState : State
     }
     public override void OnStart()
     {
+        if (playerController.EnvironmentScan.highestLedge.distanceToPlayer == 0)
+        {
+            playerController.ChangeState(playerController.movementState);
+        }
         playerController.VerticalVelocity = -1;
         playerController.IsHanging = true;
         playerController.TargetPosition = playerController.EnvironmentScan.GetTargetHangPosition();
         //playerController.InvokeOnJumpAction(playerController.IsJumping, playerController.EnvironmentScan.relevantAction);
         playerController.Animator.SetBool("IsHanging", true);
         playerController.GameInput.OnJumpAction += GameInput_OnJumpAction;
+        isArrived = true;
         hangJumpTimeOut = 0.5f;
-    }
+    }   
 
     private void GameInput_OnJumpAction(object sender, System.EventArgs e)
     {
@@ -28,16 +33,16 @@ public class HangState : State
         {
             playerController.ChangeState(playerController.hangJumpState);
         }
-
     }
 
     public override void OnUpdate()
     {
-        playerController.transform.rotation = FixRotation();
+        playerController.InvokeOnHasWallChangeAction(playerController.EnvironmentScan.CheckWall());
+        FixRotation();
         if (!isArrived)
         {
             float distanceToTarget = Vector3.Distance(playerController.transform.position, playerController.TargetPosition);
-            float tolerance = 0.01f; 
+            float tolerance = 0.05f; 
 
             if (distanceToTarget > tolerance)
             {
@@ -62,51 +67,43 @@ public class HangState : State
     }
     private void Move()
     {
-        if (!isArrived && hangJumpTimeOut <= 0) return;
+        if (hangJumpTimeOut >= 0) return;
 
         Vector2 movementVector = playerController.GameInput.GetMovementVectorNormalized();
+        Vector2 ledgeBounds = playerController.EnvironmentScan.CheckLedgeBounds();
         if (playerController.GameInput.GetMovementVectorNormalized() != Vector2.zero)
         {
-            switch (playerController.EnvironmentScan.currentSurfaceNormalDirection)
+            if (ledgeBounds == Vector2.right && movementVector.x > 0)
             {
-                case EnvironmentScan.SurfaceNormalDirection.Forward:
-                    playerController.CharacterController.Move(new Vector3(-movementVector.x, 0, 0) * hangingMoveSpeed * Time.deltaTime);
-                    break;
-                case EnvironmentScan.SurfaceNormalDirection.Backward:
-                    playerController.CharacterController.Move(new Vector3(movementVector.x, 0, 0) * hangingMoveSpeed * Time.deltaTime);
-                    break;
-                case EnvironmentScan.SurfaceNormalDirection.Right:
-                    playerController.CharacterController.Move(new Vector3(0, 0, movementVector.x) * hangingMoveSpeed * Time.deltaTime);
-                    break;
-                case EnvironmentScan.SurfaceNormalDirection.Left:
-                    playerController.CharacterController.Move(new Vector3(0, 0, -movementVector.x) * hangingMoveSpeed * Time.deltaTime);
-                    break;
-                default:
-                    break;
+                movementVector.x = 0;
+                playerController.CharacterController.Move(playerController.transform.right * movementVector.x * hangingMoveSpeed * Time.deltaTime);
             }
+            else if (ledgeBounds == -Vector2.right && movementVector.x < 0)
+            {
+                movementVector.x = 0;
+                playerController.CharacterController.Move(playerController.transform.right * movementVector.x * hangingMoveSpeed * Time.deltaTime);
+            }
+            else
+            {
+                playerController.CharacterController.Move(playerController.transform.right * movementVector.x * hangingMoveSpeed * Time.deltaTime);
+            }
+
+            playerController.InvokeOnHangMovementAction(movementVector);
+        }
+        else
+        {
+            playerController.InvokeOnHangMovementAction(movementVector);
         }
     }
-    private Quaternion FixRotation()
+    private void FixRotation()
     {
-        Quaternion playerRotation = playerController.transform.rotation;
-
-        Debug.Log("FixRotation; " + playerController.EnvironmentScan.currentSurfaceNormalDirection);
-        switch (playerController.EnvironmentScan.currentSurfaceNormalDirection)
-        {
-            default:
-            case EnvironmentScan.SurfaceNormalDirection.Forward:
-                playerRotation = Quaternion.Slerp(playerRotation, Quaternion.Euler(0,-180,0), fixRotationSmoothSpeed * Time.deltaTime);
-                return playerRotation;
-            case EnvironmentScan.SurfaceNormalDirection.Backward:
-                playerRotation = Quaternion.Slerp(playerRotation, Quaternion.Euler(0, 0, 0), fixRotationSmoothSpeed * Time.deltaTime);
-                return playerRotation;
-            case EnvironmentScan.SurfaceNormalDirection.Right:
-                playerRotation = Quaternion.Slerp(playerRotation, Quaternion.Euler(0, -90, 0), fixRotationSmoothSpeed * Time.deltaTime);
-                return playerRotation;
-            case EnvironmentScan.SurfaceNormalDirection.Left:
-                playerRotation = Quaternion.Slerp(playerRotation, Quaternion.Euler(0, 90, 0), fixRotationSmoothSpeed * Time.deltaTime);
-                return playerRotation;
-        }
+        Quaternion startRotation = playerController.transform.rotation;
+        Quaternion targetRotation = playerController.EnvironmentScan.GetRotationToMatch();
+        targetRotation.x = 0;
+        targetRotation.z = 0;
+        playerController.transform.rotation = Quaternion.Slerp(startRotation,
+                                              targetRotation * startRotation,
+                                              fixRotationSmoothSpeed * Time.deltaTime);
     }
 
     public override void OnExit()
@@ -118,6 +115,7 @@ public class HangState : State
         playerController.Animator.SetBool("IsHanging", false);
         playerController.Animator.SetBool("FreeFall", true);
         hangJumpTimeOut = 0.5f;
+        playerController.StopHangingRemainingTime = playerController.StopScanTimer;
         //playerController.InvokeOnFreeFallAction(true);
     }
 }

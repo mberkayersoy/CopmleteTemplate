@@ -17,10 +17,10 @@ public class EnvironmentScan : MonoBehaviour
 
     [Header("DEFAULT VARIABLES")]
     [SerializeField] private float rayLength = 5f;
-    [SerializeField] private float rayHeightOffset = 0.1f;
+    [SerializeField] private float rayOffset = 0.05f;
     [SerializeField] private LayerMask obstacleLayer;
     [SerializeField] private LayerMask groundLayer;
-    [SerializeField] private int numberOfRaycasts = 30; // Raycast count
+    [SerializeField] private int numberOfRaycasts = 10; // Raycast count
     [SerializeField] private float maxDistanceToPlayer = 2f;
     [Range(0, 179)] [SerializeField] private float minSurfaceNormalAngle = 140f;
     [SerializeField] private Vector3 currentTargetPosition;
@@ -34,12 +34,14 @@ public class EnvironmentScan : MonoBehaviour
     [SerializeField] private float minVaultHeight = 0.51f;
     [SerializeField] private float maxVaultHeight = 1.2f;
     public SurfaceNormalDirection currentSurfaceNormalDirection;
+    public Vector3 currentSurfaceNormal;
 
     private ThirdPersonCharacterController playerScript;
     private CharacterController controller;
     private float playerHeight;
 
     private List<RaycastHit> rayHitList;
+    private List<RaycastHit> sideRayHitList;
 
     private void Start()
     {
@@ -51,122 +53,140 @@ public class EnvironmentScan : MonoBehaviour
     private void Update()
     {
         CheckFront();
+        CheckLedgeBounds();
+        CheckWall();
     }
 
-    private void HangScan()
+    public bool CheckWall()
     {
-        for (int i = 0; i < numberOfRaycasts; i++)
+        if (highestLedge.hitInfo.distance == 0) return false;
+        Vector3 characterPosition = transform.position;
+        Vector3 characterForward = transform.forward;
+
+
+        Vector3 raycastOrigin = characterPosition  + new Vector3(0, 9 * rayOffset, 0);
+        if (Physics.Raycast(raycastOrigin, characterForward, rayLength * 1.2f, obstacleLayer))
         {
-            Vector3 raycastOrigin = currentTargetPosition + new Vector3(0, controller.stepOffset, 0) + new Vector3(0, i * rayHeightOffset, 0);
+            Debug.DrawRay(raycastOrigin, characterForward * rayLength * 1.2f, Color.green);
+            return true;
         }
+        else
+        {
+            Debug.DrawRay(raycastOrigin, characterForward * rayLength * 1.2f, Color.red);
+            return false;
+        }
+        
     }
     private void CheckFront()
     {
-        int highestHitIndex = 0;
         rayHitList = new List<RaycastHit>();
         highestLedge = new RaycastHitInfo();
         Vector3 characterPosition = transform.position;
-        Vector3 characterForward = transform.TransformDirection(Vector3.forward);
+        Vector3 characterForward = transform.forward;
         playerHeight = transform.position.y + controller.height;
 
         for (int i = 0; i < numberOfRaycasts; i++)
         {
-            Vector3 raycastOrigin = characterPosition + new Vector3(0, controller.height, 0) + new Vector3(0, i * rayHeightOffset, 0);
+            Vector3 raycastOrigin = characterPosition + new Vector3(0, controller.height, 0) + new Vector3(0, i * rayOffset, 0);
 
             RaycastHit hit;
             if (Physics.Raycast(raycastOrigin, characterForward, out hit, rayLength, obstacleLayer))
             {
                 // check hit angle
-                float angleToCharacter = Vector3.Angle(hit.normal, characterForward);
-
-                // check conditions
-                if (angleToCharacter >= minSurfaceNormalAngle && hit.point.y > highestLedge.hitInfo.point.y) //&&
-                     //hit.distance <= highestLedge.hitInfo.distance)// Vector3.Distance(hit.point, characterPosition + new Vector3(0, i * rayHeightOffset, 0)) <= maxDistanceToPlayer)
-                {
-                    RaycastHitInfo newLedge = new RaycastHitInfo(hit, Vector3.Distance(hit.point, characterPosition),
-                        hit.point.y, angleToCharacter);
-                    highestHitIndex = i;
-                    highestLedge = newLedge;
-
-                    //rayHits.Add(i, hit);
-                    rayHitList.Add(hit);
-
-                    Debug.DrawLine(raycastOrigin, hit.point, Color.green);
-                }
-                else
-                {
-                    Debug.DrawLine(raycastOrigin, raycastOrigin + characterForward * rayLength, Color.red);
-                }
+                rayHitList.Add(hit);
+                Debug.DrawLine(raycastOrigin, hit.point, Color.green);
             }
             else
             {
                 // if there is no hit.
-                Debug.DrawLine(raycastOrigin, raycastOrigin + characterForward * rayLength, Color.yellow);
-                Debug.Log("No hit : " + hit);
-                //rayHits.Add(i, hit);
+                Debug.DrawLine(raycastOrigin, raycastOrigin + characterForward * rayLength, Color.red);
                 rayHitList.Add(hit);
             }
         }
         CheckLedge();
-        //CheckDepth(highestHit.hitInfo.point, highestHit.hitInfo.normal);
-        //if (highestHitIndex != numberOfRaycasts - 1)
-        //{
-        //    CheckDepth(highestHit.hitInfo.point, highestHit.hitInfo.normal);
-        //}
-        //else
-        //{
-        //    relevantAction = RelevantAction.None;
-        //}
     }
 
+
+    public Vector2 CheckLedgeBounds()
+    {
+        float ledgeCheckOffSet = 0.4f;
+        float ledgeCheckYOffSet = 0.1f;
+        Vector3 raycastPosition = highestLedge.hitInfo.point - transform.right * ledgeCheckOffSet;
+
+        for (int i = 0; i < 2; i++)
+        {
+            Vector3 raycastOrigin = raycastPosition + transform.forward * 0.02f +
+                  new Vector3(0, ledgeCheckYOffSet, 0) + transform.right * i * ledgeCheckOffSet * 2;
+            RaycastHit hit;
+            if (Physics.Raycast(raycastOrigin, -transform.up, out hit, rayLength, obstacleLayer))
+            {
+                Debug.DrawRay(raycastOrigin, -transform.up * rayLength, Color.blue);
+            }
+            else
+            {
+                Debug.DrawRay(raycastOrigin, -transform.up * rayLength, Color.red);
+                if (i == 0)
+                {
+                    return new Vector2(-1, 0);
+                }
+                else
+                {
+                    return new Vector2(1, 0);
+                }
+            }
+        }
+        return new Vector2(1,1);
+
+    }
     public void CheckLedge()
     {
-        for (int i = rayHitList.Count - 1; i < rayHitList.Count; i++)
+        for (int i = rayHitList.Count - 1; i < rayHitList.Count; i--)
         {
+            if (i == 0) break;
             // Ledge
             if (rayHitList[i].distance == 0f && rayHitList[i - 1].distance != 0f)
             {
-                Debug.Log("IF");
-                relevantAction = RelevantAction.Edge;
                 RaycastHitInfo newLedge = new RaycastHitInfo(rayHitList[i - 1], rayHitList[i - 1].distance,
-                       rayHitList[i - 1].point.y, Vector3.Angle(rayHitList[i - 1].normal, transform.TransformDirection(Vector3.forward)));
+                       rayHitList[i - 1].point.y, Vector3.Angle(rayHitList[i - 1].normal, transform.forward)); //.TransformDirection(Vector3.forward)));
                 highestLedge = newLedge;
-                GetSurfaceNormalDirection(rayHitList[i - 1].normal);
+                relevantAction = RelevantAction.Edge;
+                //GetSurfaceNormalDirection(rayHitList[i - 1].normal);
+                //GetTargetHangPosition();
             }
             //Ledge
-            else if (rayHitList[i].distance != 0 && rayHitList[i - 1].distance != 0 && rayHitList[i].distance - rayHitList[i - 1].distance >= 0.1f) // 0.1f is ledge off set.
+            else if (rayHitList[i].distance != 0 && rayHitList[i - 1].distance != 0 && 
+                rayHitList[i].distance - rayHitList[i - 1].distance > 0) // 0.1f is ledge off set.
             {
-                Debug.Log("ELSE IF");
                 RaycastHitInfo newLedge = new RaycastHitInfo(rayHitList[i - 1], rayHitList[i - 1].distance,
-                    rayHitList[i - 1].point.y, Vector3.Angle(rayHitList[i - 1].normal, transform.TransformDirection(Vector3.forward)));
+                    rayHitList[i - 1].point.y, Vector3.Angle(rayHitList[i - 1].normal, transform.forward));//.TransformDirection(Vector3.forward)));
                 highestLedge = newLedge;
                 relevantAction = RelevantAction.Edge;
-                GetSurfaceNormalDirection(rayHitList[i - 1].normal);
+                //GetSurfaceNormalDirection(rayHitList[i - 1].normal);
+
             }
             else
             {
                 relevantAction = RelevantAction.None;
             }
-
-            
         }
     }
 
     public Vector3 GetTargetHangPosition()
     {
-        Vector3 capsuleRadiusOffset = GetSurfaceNormalDirection(highestLedge.hitInfo.normal) switch
-        {
-            SurfaceNormalDirection.Backward => new Vector3(0, 0, -controller.radius - controller.skinWidth),
-            SurfaceNormalDirection.Right => new Vector3(controller.radius + controller.skinWidth, 0, 0),
-            SurfaceNormalDirection.Left => new Vector3(-controller.radius - controller.skinWidth, 0, 0),
-            _ => new Vector3(0, 0, controller.radius + controller.skinWidth),
-        };
-     
-        currentTargetPosition = new Vector3(highestLedge.hitInfo.point.x + capsuleRadiusOffset.x, highestLedge.hitInfo.point.y - controller.height, highestLedge.hitInfo.point.z + capsuleRadiusOffset.z); 
+        Vector3 capsuleOffSet = -transform.forward * (controller.radius + controller.skinWidth);
+         currentTargetPosition = highestLedge.hitInfo.point + capsuleOffSet - new Vector3(0, controller.height, 0);
+        
         return currentTargetPosition;
     }
+    public Quaternion GetRotationToMatch()
+    {
+        // Calculate the rotation needed to align the player's forward direction with the surface -normal.
+        Quaternion rotationToMatch = Quaternion.FromToRotation(transform.rotation * Vector3.forward, -highestLedge.hitInfo.normal);
 
-    private RelevantAction CheckDepth(Vector3 hitPoint, Vector3 hitNormal)
+        return rotationToMatch;
+    }
+
+    /*private RelevantAction CheckDepth(Vector3 hitPoint, Vector3 hitNormal)
     {
         Vector3 origin = hitPoint + Vector3.up / 2;
         float angleThreshHold = 25f;
@@ -186,13 +206,13 @@ public class EnvironmentScan : MonoBehaviour
                 _ => Quaternion.Euler(angle, 0, 0) * -hitNormal,
             };
 
-            /*
+            
             - If both raycasts don't hit something, there's a high wall. 
             - If the first raycast hits above the player's height, there is only an edge. So player can hold the edge.
             - If two raycasts hits above the player's height, there is an area where the player can climb on top after holding on.
             - If the first raycast hits below the player's height, the player can move behind the obstacle.
             - If two raycasts hits below the player's height, the player can step up above the obstacle.
-             */
+             
 
             RaycastHit hit;
             if (Physics.Raycast(origin, direction, out hit, 1.5f, obstacleLayer))
@@ -238,9 +258,16 @@ public class EnvironmentScan : MonoBehaviour
         }
 
     }
+    */
 
-    private SurfaceNormalDirection GetSurfaceNormalDirection(Vector3 hitNormal)
+    /*private SurfaceNormalDirection GetSurfaceNormalDirection(Vector3 hitNormal)
     {
+        //// Calculate the rotation needed to align the player's forward direction with the surface normal.
+        //Quaternion rotation = Quaternion.FromToRotation(transform.up, hitNormal);
+
+        //// Apply the rotation to the player's transform.
+        //transform.rotation = rotation * transform.rotation;
+
         if (Mathf.Abs(hitNormal.x) > Mathf.Abs(hitNormal.z))
         {
             if (hitNormal.x > 0)
@@ -267,7 +294,7 @@ public class EnvironmentScan : MonoBehaviour
                 return SurfaceNormalDirection.Backward;
             }
         }
-    }
+    }*/
 
     private void OnDrawGizmos()
     {

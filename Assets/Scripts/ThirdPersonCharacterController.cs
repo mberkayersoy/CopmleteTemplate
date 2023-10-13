@@ -19,6 +19,8 @@ public class ThirdPersonCharacterController : MonoBehaviour
     public event EventHandler<OnHangJumpActionEventArgs> OnHangJumpAction;
     public event EventHandler<OnJumpActionEventArgs> OnJumpAction;
     public event EventHandler<OnFreeFallEventArgs> OnFreeFallAction;
+    public event EventHandler<OnHangMovementActionEventArgs> OnHangMovementAction;
+    public event EventHandler<OnHasWallChangeActionEventArgs> OnHasWallChangeAction;
 
     // EVENT ARGS
     public class OnSpeedChangeActionEventArgs : EventArgs { public float speed; }
@@ -27,6 +29,8 @@ public class ThirdPersonCharacterController : MonoBehaviour
     public class OnFreeFallEventArgs : EventArgs { public bool freeFall; }
     public class OnHangActionEventArgs : EventArgs { public bool isHanging; }
     public class OnHangJumpActionEventArgs : EventArgs { public Vector2 movementVector; }
+    public class OnHangMovementActionEventArgs : EventArgs { public Vector2 movementVector; }
+    public class OnHasWallChangeActionEventArgs : EventArgs { public bool hasWall; }
     public class OnJumpActionEventArgs : EventArgs 
     { 
         public bool isJumping;
@@ -405,11 +409,12 @@ public class ThirdPersonCharacterController : MonoBehaviour
     // If there is an obstacle above the player, update jumpHeight
     public void CalculateJumpHeight()
     {
-        jumpHeight = 1f;
+        jumpHeight = 1.2f;
+        float yOffSet = 0.07f;
         RaycastHit hit;
-        if (Physics.Raycast(transform.position + new Vector3(0, 1.77f, 0), Vector3.up, out hit, jumpHeight)) 
+        if (Physics.Raycast(transform.position + new Vector3(0, CharacterController.height + yOffSet, 0), Vector3.up, out hit, jumpHeight)) 
         {
-            Debug.DrawLine(transform.position + new Vector3(0, 1.77f, 0), hit.point);
+            Debug.DrawLine(transform.position + new Vector3(0, CharacterController.height + yOffSet, 0), hit.point);
             float distance = Vector3.Distance(transform.position + new Vector3(0, 1.77f, 0), hit.point);
 
             if (distance < jumpHeight)
@@ -565,6 +570,13 @@ public class ThirdPersonCharacterController : MonoBehaviour
         });
     }
 
+    public void InvokeOnHasWallChangeAction(bool hasWall)
+    {
+        OnHasWallChangeAction?.Invoke(this, new OnHasWallChangeActionEventArgs
+        {
+            hasWall = hasWall
+        });
+    }
     public void InvokeOnHangIdleAction(bool isHanging)
     {
         OnHangIdleAction?.Invoke(this, new OnHangActionEventArgs
@@ -593,6 +605,14 @@ public class ThirdPersonCharacterController : MonoBehaviour
     public void InvokeOnHangJumpAction(Vector2 movementVector)
     {
         OnHangJumpAction?.Invoke(this, new OnHangJumpActionEventArgs
+        {
+            movementVector = movementVector
+        });
+    }
+
+    public void InvokeOnHangMovementAction(Vector2 movementVector)
+    {
+        OnHangMovementAction?.Invoke(this, new OnHangMovementActionEventArgs
         {
             movementVector = movementVector
         });

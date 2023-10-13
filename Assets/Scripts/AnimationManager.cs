@@ -28,6 +28,7 @@ public class AnimationManager : MonoBehaviour
     private int animIDVault;
     private int animIDHorizontal;
     private int animIDVertical;
+    private int animIDHassWall;
     private void Awake()
     {
         AssignAnimationIDs();
@@ -43,13 +44,26 @@ public class AnimationManager : MonoBehaviour
         playerController.OnJumpAction += PlayerController_OnSpaceKeyAction;
         playerController.OnHangAction += PlayerController_OnHangAction;
         playerController.OnHangIdleAction += PlayerController_OnHangIdleAction;
+        playerController.OnHangMovementAction += PlayerController_OnHangMovementAction;
+        playerController.OnHasWallChangeAction += PlayerController_OnHasWallChangeAction;
         //gameInput.OnVaultAction += GameInput_OnVaultAction;
         //gameInput.OnHangAction += GameInput_OnHangAction;
     }
 
+    private void PlayerController_OnHasWallChangeAction(object sender, ThirdPersonCharacterController.OnHasWallChangeActionEventArgs e)
+    {
+        animator.SetBool(animIDHassWall, e.hasWall);
+    }
+
+    private void PlayerController_OnHangMovementAction(object sender, ThirdPersonCharacterController.OnHangMovementActionEventArgs e)
+    {
+        animator.SetFloat(animIDHorizontal, e.movementVector.x * Time.smoothDeltaTime);
+        animator.SetFloat(animIDVertical, e.movementVector.y * Time.smoothDeltaTime);
+    }
+
     private void Update()
     {
-        SetMovementVectorParams();
+        //SetMovementVectorParams();
     }
     private void SetMovementVectorParams()
     {
@@ -136,6 +150,7 @@ public class AnimationManager : MonoBehaviour
         animIDVault = Animator.StringToHash("Vault");
         animIDHorizontal = Animator.StringToHash("Horizontal");
         animIDVertical = Animator.StringToHash("Vertical");
+        animIDHassWall = Animator.StringToHash("HasWall");
     }
     private void OnFootstep(AnimationEvent animationEvent)
     {
